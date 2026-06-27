@@ -1,0 +1,30 @@
+version: '3.8'
+
+services:
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    volumes:
+      - sqlite_data:/app/data
+    environment:
+      - DATABASE_TYPE=sqlite
+      - JWT_SECRET=your_jwt_secret_key_here
+      - TIKTOK_CLIENT_KEY=your_tiktok_client_key
+      - TIKTOK_CLIENT_SECRET=your_tiktok_client_secret
+    restart: unless-stopped
+
+volumes:
+  sqlite_data:
