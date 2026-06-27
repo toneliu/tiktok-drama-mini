@@ -10,7 +10,7 @@ RUN go mod download
 
 COPY . .
 
-ENV CGO_ENABLED=1 GOOS=linux
+ENV CGO_ENABLED=1 GOOS=linux CGO_CFLAGS="-D_LARGEFILE64_SOURCE"
 RUN go build -ldflags="-s -w" -o dramamax ./cmd/main.go
 
 # Run stage
