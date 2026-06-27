@@ -1,0 +1,21 @@
+version: '3.8'
+
+services:
+  frontend:
+    image: ghcr.io/toneliu/tiktok-drama-mini-frontend:main
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+  backend:
+    image: ghcr.io/toneliu/tiktok-drama-mini-backend:main
+    ports:
+      - "8080:8080"
+    volumes:
+      - sqlite_data:/app/data
+    restart: unless-stopped
+
+volumes:
+  sqlite_data:
