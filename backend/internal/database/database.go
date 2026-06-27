@@ -3,6 +3,8 @@ package database
 import (
 	"fmt"
 	"log"
+	"os"
+	"path/filepath"
 	"sync"
 	"time"
 
@@ -10,6 +12,7 @@ import (
 	"github.com/dramamax/backend/internal/models"
 	"github.com/google/uuid"
 	"gorm.io/driver/mysql"
+	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 )
@@ -21,7 +24,27 @@ var (
 )
 
 func Init(cfg *config.Config) error {
+	// 优先尝试 SQLite（无需额外服务）
+	if cfg.Database.Type == "sqlite" || cfg.Database.Host == "" {
+		if err := initSQLite(cfg); err == nil {
+			return nil
+		}
+	}
+
 	// 尝试连接MySQL
+	if cfg.Database.Type == "mysql" || cfg.Database.Host != "" {
+		if err := initMySQL(cfg); err == nil {
+			return nil
+		}
+	}
+
+	// 都失败则回退到内存 DEMO 模式
+	log.Println("[WARN] All database connections failed, switching to DEMO mode (in-memory mock data)")
+	IsDemo = true
+	return nil
+}
+
+func initMySQL(cfg *config.Config) error {
 	dsn := fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?charset=utf8mb4&parseTime=True&loc=Local",
 		cfg.Database.User,
 		cfg.Database.Password,
@@ -35,24 +58,57 @@ func Init(cfg *config.Config) error {
 		Logger: logger.Default.LogMode(logger.Info),
 	})
 	if err != nil {
-		log.Printf("[WARN] MySQL connection failed (%v), switching to DEMO mode (in-memory mock data)", err)
-		IsDemo = true
-		return nil
+		log.Printf("[WARN] MySQL connection failed: %v", err)
+		return err
 	}
 
-	// 自动迁移
-	if err := DB.AutoMigrate(
+	if err := autoMigrate(); err != nil {
+		log.Printf("[WARN] MySQL migration failed: %v", err)
+		return err
+	}
+
+	log.Println("[OK] MySQL database initialized successfully")
+	return nil
+}
+
+func initSQLite(cfg *config.Config) error {
+	dbPath := cfg.Database.DBName
+	if dbPath == "" || dbPath == "dramamax" {
+		// 默认 SQLite 文件路径
+		dbPath = filepath.Join(".", "data", "dramamax.db")
+	}
+
+	// 确保目录存在
+	dir := filepath.Dir(dbPath)
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		log.Printf("[WARN] Failed to create SQLite directory: %v", err)
+		return err
+	}
+
+	var err error
+	DB, err = gorm.Open(sqlite.Open(dbPath), &gorm.Config{
+		Logger: logger.Default.LogMode(logger.Info),
+	})
+	if err != nil {
+		log.Printf("[WARN] SQLite connection failed: %v", err)
+		return err
+	}
+
+	if err := autoMigrate(); err != nil {
+		log.Printf("[WARN] SQLite migration failed: %v", err)
+		return err
+	}
+
+	log.Printf("[OK] SQLite database initialized: %s", dbPath)
+	return nil
+}
+
+func autoMigrate() error {
+	return DB.AutoMigrate(
 		&models.User{}, &models.Drama{}, &models.Episode{},
 		&models.SubscriptionPlan{}, &models.Subscription{},
 		&models.PaymentOrder{}, &models.WatchHistory{},
-	); err != nil {
-		log.Printf("[WARN] Migration failed (%v), switching to DEMO mode", err)
-		IsDemo = true
-		return nil
-	}
-
-	log.Println("[OK] Database initialized successfully")
-	return nil
+	)
 }
 
 // MockDramas 返回演示用剧集

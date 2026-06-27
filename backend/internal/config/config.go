@@ -19,6 +19,7 @@ type ServerConfig struct {
 }
 
 type DatabaseConfig struct {
+	Type     string // "sqlite" or "mysql"
 	Host     string
 	Port     int
 	User     string
@@ -69,7 +70,8 @@ func Load() (*Config, error) {
 func setDefaults() {
 	viper.SetDefault("server.port", 8080)
 	viper.SetDefault("server.mode", "debug")
-	viper.SetDefault("database.host", "localhost")
+	viper.SetDefault("database.type", "sqlite")
+	viper.SetDefault("database.host", "")
 	viper.SetDefault("database.port", 3306)
 	viper.SetDefault("database.user", "root")
 	viper.SetDefault("database.password", "")

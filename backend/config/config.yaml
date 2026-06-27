@@ -3,11 +3,12 @@ server:
   mode: debug
 
 database:
-  host: localhost
+  type: sqlite          # sqlite 或 mysql
+  host: ""              # MySQL 地址（sqlite 时留空）
   port: 3306
   user: root
   password: your_password
-  dbname: dramamax
+  dbname: dramamax      # MySQL 数据库名，或 SQLite 文件路径
 
 redis:
   host: localhost
