@@ -1,0 +1,254 @@
+/* Profile Page - Apple TV Glass Style */
+.profile-container {
+  min-height: 100vh;
+  position: relative;
+  padding-bottom: 140px;
+}
+
+.profile-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px 20px;
+}
+
+.profile-header h1 {
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.settings-icon-btn {
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  color: rgba(255, 255, 255, 0.6);
+  background: rgba(28, 28, 30, 0.5);
+  backdrop-filter: blur(30px) saturate(180%);
+  -webkit-backdrop-filter: blur(30px) saturate(180%);
+  border: 0.5px solid rgba(255, 255, 255, 0.14);
+  box-shadow:
+    inset 0 0.5px 0 rgba(255, 255, 255, 0.15),
+    inset 0 -0.5px 0 rgba(0, 0, 0, 0.15),
+    0 4px 14px rgba(0, 0, 0, 0.25);
+}
+
+.settings-icon-btn svg {
+  width: 20px;
+  height: 20px;
+}
+
+/* User Info */
+.profile-user {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 20px;
+}
+
+.user-avatar-large {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.08);
+  box-shadow:
+    0 8px 24px rgba(0, 0, 0, 0.4),
+    inset 0 0.5px 0 rgba(255, 255, 255, 0.2);
+  flex-shrink: 0;
+}
+
+.user-avatar-large img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.user-details {
+  flex: 1;
+  min-width: 0;
+}
+
+.user-name {
+  font-size: 20px;
+  font-weight: 700;
+  margin-bottom: 6px;
+  letter-spacing: -0.015em;
+}
+
+.user-level {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.vip-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  background: linear-gradient(135deg, #ffd700, #ff9f00);
+  border-radius: 100px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #1a1a1a;
+  letter-spacing: 0.01em;
+  box-shadow:
+    0 4px 12px rgba(255, 170, 0, 0.25),
+    inset 0 0.5px 0 rgba(255, 255, 255, 0.3);
+}
+
+/* VIP Banner */
+.profile-vip-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 0 20px 20px;
+  padding: 20px 22px;
+  background: rgba(28, 28, 30, 0.5);
+  backdrop-filter: blur(40px) saturate(180%);
+  -webkit-backdrop-filter: blur(40px) saturate(180%);
+  border: 0.5px solid rgba(255, 255, 255, 0.14);
+  border-radius: 20px;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.25, 0.1, 0.25, 1);
+  box-shadow:
+    inset 0 0.5px 0 rgba(255, 255, 255, 0.18),
+    inset 0 -0.5px 0 rgba(0, 0, 0, 0.1),
+    0 8px 24px rgba(0, 0, 0, 0.3);
+}
+
+.profile-vip-banner:hover {
+  background: rgba(44, 44, 46, 0.55);
+  transform: translateY(-1px);
+}
+
+.vip-banner-content {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.vip-banner-icon {
+  font-size: 32px;
+  filter: drop-shadow(0 2px 8px rgba(255, 200, 50, 0.4));
+}
+
+.vip-banner-title {
+  font-size: 15px;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.vip-banner-desc {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.45);
+}
+
+.profile-vip-banner svg {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+/* Menu Sections */
+.profile-menu {
+  margin: 0 20px 12px;
+  background: rgba(28, 28, 30, 0.45);
+  backdrop-filter: blur(40px) saturate(180%);
+  -webkit-backdrop-filter: blur(40px) saturate(180%);
+  border: 0.5px solid rgba(255, 255, 255, 0.1);
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow:
+    inset 0 0.5px 0 rgba(255, 255, 255, 0.12),
+    0 4px 16px rgba(0, 0, 0, 0.25);
+}
+
+.profile-menu-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  cursor: pointer;
+  border-bottom: 0.5px solid rgba(255, 255, 255, 0.06);
+  transition: all 0.2s ease;
+}
+
+.profile-menu-item:last-child {
+  border-bottom: none;
+}
+
+.profile-menu-item:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.menu-item-left {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.menu-item-left svg {
+  width: 20px;
+  height: 20px;
+  color: rgba(255, 255, 255, 0.55);
+  stroke-width: 1.8;
+}
+
+.menu-item-left span {
+  font-size: 15px;
+  color: rgba(255, 255, 255, 0.85);
+  font-weight: 500;
+}
+
+.menu-item-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.menu-value {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.35);
+}
+
+.menu-chevron {
+  color: rgba(255, 255, 255, 0.25);
+  stroke-width: 2;
+}
+
+/* Logout */
+.logout-btn {
+  display: block;
+  width: calc(100% - 40px);
+  margin: 24px 20px 12px;
+  padding: 16px;
+  background: rgba(255, 80, 80, 0.12);
+  backdrop-filter: blur(40px) saturate(180%);
+  -webkit-backdrop-filter: blur(40px) saturate(180%);
+  border: 0.5px solid rgba(255, 80, 80, 0.2);
+  border-radius: 16px;
+  font-size: 15px;
+  font-weight: 600;
+  color: #ff8a8a;
+  text-align: center;
+  transition: all 0.3s cubic-bezier(0.25, 0.1, 0.25, 1);
+  box-shadow:
+    inset 0 0.5px 0 rgba(255, 255, 255, 0.1),
+    0 4px 12px rgba(255, 80, 80, 0.1);
+  cursor: pointer;
+}
+
+.logout-btn:hover {
+  background: rgba(255, 80, 80, 0.18);
+  transform: translateY(-1px);
+}
+
+.version-text {
+  text-align: center;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.2);
+  padding: 8px 0 20px;
+  letter-spacing: 0.05em;
+}
