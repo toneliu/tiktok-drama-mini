@@ -9,7 +9,9 @@ COPY go.mod go.sum ./
 RUN go mod download
 
 COPY . .
-RUN CGO_ENABLED=1 GOOS=linux go build -ldflags="-s -w" -o dramamax ./cmd/main.go
+
+ENV CGO_ENABLED=1 GOOS=linux
+RUN go build -ldflags="-s -w" -o dramamax ./cmd/main.go
 
 # Run stage
 FROM alpine:3.19
