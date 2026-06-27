@@ -1,0 +1,23 @@
+server:
+  port: 8080
+  mode: debug
+
+database:
+  host: localhost
+  port: 3306
+  user: root
+  password: your_password
+  dbname: dramamax
+
+redis:
+  host: localhost
+  port: 6379
+  password: ""
+  db: 0
+
+tiktok:
+  client_key: your_tiktok_client_key
+  client_secret: your_tiktok_client_secret
+
+jwt:
+  secret: your_jwt_secret_key_here
