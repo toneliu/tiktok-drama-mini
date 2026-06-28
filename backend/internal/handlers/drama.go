@@ -194,3 +194,37 @@ func (h *DramaHandler) GetPlayURL(c *gin.Context) {
 	database.DB.Where("drama_id = ?", episode.DramaID).Order("episode_number ASC").Find(&episodes)
 	c.JSON(http.StatusOK, gin.H{"episode": episode, "episodes": episodes, "isFree": episode.IsFree})
 }
+
+// GetCategories 获取分类列表（含剧集数量）
+func (h *DramaHandler) GetCategories(c *gin.Context) {
+	if database.IsDemo {
+		all := database.MockDramas()
+		catMap := make(map[string]int)
+		for _, d := range all {
+			catMap[d.Category]++
+		}
+		type catItem struct {
+			Name  string `json:"name"`
+			Count int    `json:"count"`
+		}
+		var list []catItem
+		for name, count := range catMap {
+			list = append(list, catItem{Name: name, Count: count})
+		}
+		c.JSON(http.StatusOK, gin.H{"data": list})
+		return
+	}
+
+	type catItem struct {
+		Name  string `json:"name"`
+		Count int64  `json:"count"`
+	}
+	var list []catItem
+	database.DB.Model(&models.Drama{}).
+		Where("deleted_at IS NULL AND category != ''").
+		Select("category as name, COUNT(*) as count").
+		Group("category").
+		Order("count DESC").
+		Scan(&list)
+	c.JSON(http.StatusOK, gin.H{"data": list})
+}

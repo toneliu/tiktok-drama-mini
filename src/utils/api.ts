@@ -76,6 +76,8 @@ export const api = {
     // 获取首页推荐
     getRecommend: (page = 1, limit = 10) =>
       apiClient.get('/drama/recommend', { params: { page, limit } }),
+    // 获取分类列表
+    getCategories: () => apiClient.get('/drama/categories'),
     // 获取剧集列表
     getList: (params: { category?: string; page?: number; limit?: number }) =>
       apiClient.get('/drama/list', { params }),

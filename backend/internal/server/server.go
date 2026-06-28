@@ -75,6 +75,7 @@ func registerRoutes(r *gin.Engine) {
 		{
 			drama.GET("/recommend", dramaHandler.GetRecommend)
 			drama.GET("/list", dramaHandler.GetList)
+			drama.GET("/categories", dramaHandler.GetCategories)
 			drama.GET("/:id", dramaHandler.GetDetail)
 			drama.GET("/:id/episodes", dramaHandler.GetEpisodes)
 		}

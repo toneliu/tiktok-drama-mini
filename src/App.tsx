@@ -4,6 +4,7 @@ import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate } from
 // Pages
 import Login from '@/pages/Login';
 import Home from '@/pages/Home';
+import Category from '@/pages/Category';
 import DramaDetail from '@/pages/DramaDetail';
 import Player from '@/pages/Player';
 import Subscription from '@/pages/Subscription';
@@ -19,6 +20,7 @@ const BottomNav: React.FC = () => {
 
   const navItems = [
     { path: '/', label: '首页', icon: HomeIcon },
+    { path: '/category', label: '分类', icon: GridIcon },
     { path: '/mylist', label: '我的列表', icon: BookmarkIcon },
     { path: '/profile', label: '我的', icon: UserIcon },
   ];
@@ -29,7 +31,11 @@ const BottomNav: React.FC = () => {
   return (
     <nav className="bottom-nav">
       {navItems.map((item) => {
-        const isActive = currentPath === item.path;
+        let isActive = currentPath === item.path;
+        // 分类页：前缀匹配也算激活
+        if (item.path === '/category') {
+          isActive = currentPath === '/category' || currentPath.startsWith('/category/');
+        }
         return (
           <a
             key={item.path}
@@ -67,6 +73,17 @@ function BookmarkIcon({ active }: { active: boolean }) {
   );
 }
 
+function GridIcon({ active }: { active: boolean }) {
+  return (
+    <svg viewBox="0 0 24 24" fill={active ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth={active ? 2.5 : 1.5} strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="3" width="7" height="7" rx="1.5" />
+      <rect x="14" y="3" width="7" height="7" rx="1.5" />
+      <rect x="3" y="14" width="7" height="7" rx="1.5" />
+      <rect x="14" y="14" width="7" height="7" rx="1.5" />
+    </svg>
+  );
+}
+
 function UserIcon({ active }: { active: boolean }) {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? 2.5 : 1.5} strokeLinecap="round" strokeLinejoin="round">
@@ -94,13 +111,14 @@ const App: React.FC = () => {
       <div className="app-container">
         <Routes>
           <Route path="/" element={<Home />} />
+          <Route path="/category" element={<Category />} />
+          <Route path="/category/:category" element={<Category />} />
           <Route path="/login" element={<Login />} />
           <Route path="/drama/:id" element={<DramaDetail />} />
           <Route path="/play/:episodeId" element={<Player />} />
           <Route path="/subscription" element={<Subscription />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/mylist" element={<MyList />} />
-          <Route path="/category/:category" element={<Home />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
         <BottomNav />
