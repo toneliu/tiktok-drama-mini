@@ -26,7 +26,7 @@ request.interceptors.response.use(
       if (status === 401) {
         localStorage.removeItem('admin_token')
         localStorage.removeItem('admin_user')
-        window.location.href = '/admin/login'
+        window.location.href = window.location.origin + '/admin/login'
         return Promise.reject(new Error('登录已过期，请重新登录'))
       }
       const msg = (data && (data.message || data.error)) || `请求失败 (${status})`
