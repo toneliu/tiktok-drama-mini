@@ -6,12 +6,13 @@ import './Player.css';
 
 interface Episode {
   id: string;
-  episodeNumber: number;
+  episode_number: number;
   title: string;
   duration: number;
-  playUrl: string;
-  tiktokVideoId?: string;
-  playSource?: string; // local | oss | tos | qiniu | tiktok | external | cdn
+  play_url: string;
+  tiktok_video_id?: string;
+  play_source?: string; // local | oss | tos | qiniu | tiktok | external | cdn
+  is_free?: boolean;
 }
 
 const Player: React.FC = () => {
@@ -49,10 +50,10 @@ const Player: React.FC = () => {
         navigate('/subscription');
         return;
       }
-      
+
       // 判断播放源类型
       const episode = res.episode;
-      const isTTVideo = episode.playSource === 'tiktok' && episode.tiktokVideoId;
+      const isTTVideo = episode.play_source === 'tiktok' && episode.tiktok_video_id;
       setIsTikTokVideo(isTTVideo);
       
       setCurrentEpisode(episode);
@@ -151,12 +152,12 @@ const Player: React.FC = () => {
       {/* 视频播放器 */}
       <div className="video-wrapper" onClick={() => !isTikTokVideo && handleVideoClick()}>
         {/* TikTok视频嵌入播放 - VIP专属 */}
-        {isTikTokVideo && currentEpisode?.tiktokVideoId ? (
+        {isTikTokVideo && currentEpisode?.tiktok_video_id ? (
           isVip ? (
             // VIP用户 - 直接播放TikTok视频
             <div className="tiktok-embed-wrapper">
               <iframe
-                src={`https://www.tiktok.com/embed/v2/${currentEpisode.tiktokVideoId}?autoplay=1`}
+                src={`https://www.tiktok.com/embed/v2/${currentEpisode.tiktok_video_id}?autoplay=1`}
                 className="tiktok-embed-iframe"
                 allowFullScreen
                 allow="autoplay"
@@ -183,7 +184,7 @@ const Player: React.FC = () => {
           <video
             ref={videoRef}
             className="video-player"
-            src={currentEpisode?.playUrl || 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'}
+            src={currentEpisode?.play_url || 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'}
             poster={currentDrama?.cover}
             onTimeUpdate={handleTimeUpdate}
             onLoadedMetadata={handleLoadedMetadata}
@@ -205,7 +206,7 @@ const Player: React.FC = () => {
               </button>
               <div className="title-info">
                 <h3>{currentDrama?.title}</h3>
-                <p>EP {currentEpisode?.episodeNumber} - {currentEpisode?.title}</p>
+                <p>EP {currentEpisode?.episode_number} - {currentEpisode?.title}</p>
               </div>
             </div>
             
@@ -258,7 +259,7 @@ const Player: React.FC = () => {
               </button>
               <div className="title-info">
                 <h3>{currentDrama?.title}</h3>
-                <p>EP {currentEpisode?.episodeNumber} - {currentEpisode?.title}</p>
+                <p>EP {currentEpisode?.episode_number} - {currentEpisode?.title}</p>
               </div>
               <button 
                 className="episode-list-btn"
@@ -285,7 +286,7 @@ const Player: React.FC = () => {
                 className={`episode-item ${episode.id === episodeId ? 'active' : ''}`}
                 onClick={() => handleEpisodeSelect(episode)}
               >
-                <div className="episode-num">EP {episode.episodeNumber}</div>
+                <div className="episode-num">EP {episode.episode_number}</div>
                 <div className="episode-info">
                   <h4>{episode.title}</h4>
                   <span>{formatTime(episode.duration)}</span>
@@ -307,30 +308,30 @@ const mockEpisodes: Episode[] = [
   // TikTok视频
   {
     id: 'ep-1',
-    episodeNumber: 1,
+    episode_number: 1,
     title: 'Episode 1 - The Beginning',
     duration: 180,
-    playUrl: '',
-    tiktokVideoId: '7376549368795877409', // 示例TikTok视频ID
-    playSource: 'tiktok',
+    play_url: '',
+    tiktok_video_id: '7376549368795877409', // 示例TikTok视频ID
+    play_source: 'tiktok',
   },
   // CDN视频
   {
     id: 'ep-2',
-    episodeNumber: 2,
+    episode_number: 2,
     title: 'Episode 2',
     duration: 150,
-    playUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8',
-    playSource: 'cdn',
+    play_url: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8',
+    play_source: 'cdn',
   },
   // 默认CDN视频
   ...Array.from({ length: 18 }, (_, i) => ({
     id: `ep-${i + 3}`,
-    episodeNumber: i + 3,
+    episode_number: i + 3,
     title: `Episode ${i + 3}`,
     duration: 120 + Math.floor(Math.random() * 60),
-    playUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8',
-    playSource: 'cdn' as const,
+    play_url: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8',
+    play_source: 'cdn' as const,
   })),
 ];
 

@@ -6,11 +6,11 @@ import './DramaDetail.css';
 
 interface Episode {
   id: string;
-  episodeNumber: number;
+  episode_number: number;
   title: string;
   duration: number;
   thumbnail: string;
-  isFree: boolean;
+  is_free: boolean;
   isWatched?: boolean;
 }
 
@@ -20,12 +20,12 @@ interface DramaDetail {
   cover: string;
   description: string;
   rating: number;
-  totalEpisodes: number;
+  total_episodes: number;
   category: string;
   tags: string[];
   cast: string[];
   director: string;
-  releaseDate: string;
+  release_date: string;
   episodes: Episode[];
 }
 
@@ -62,7 +62,7 @@ const DramaDetailPage: React.FC = () => {
   };
 
   const handlePlayEpisode = (episode: Episode) => {
-    if (!isVip && !episode.isFree) {
+    if (!isVip && !episode.is_free) {
       navigate('/subscription');
       return;
     }
@@ -118,7 +118,7 @@ const DramaDetailPage: React.FC = () => {
             {drama.rating}
           </span>
           <span className="detail-dot">·</span>
-          <span>{drama.totalEpisodes}集</span>
+          <span>{drama.total_episodes}集</span>
           <span className="detail-dot">·</span>
           <span>{drama.category}</span>
         </div>
@@ -145,7 +145,7 @@ const DramaDetailPage: React.FC = () => {
       {!isVip && (
         <div className="detail-vip-notice" onClick={() => navigate('/subscription')}>
           <span className="detail-vip-icon">👑</span>
-          <span>开通VIP解锁全部{drama.totalEpisodes}集</span>
+          <span>开通VIP解锁全部{drama.total_episodes}集</span>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="16" height="16">
             <path d="m9 18 6-6-6-6" />
           </svg>
@@ -174,12 +174,12 @@ const DramaDetailPage: React.FC = () => {
           {drama.episodes.map((episode) => (
             <div
               key={episode.id}
-              className={`episode-row ${!isVip && !episode.isFree ? 'locked' : ''}`}
+              className={`episode-row ${!isVip && !episode.is_free ? 'locked' : ''}`}
               onClick={() => handlePlayEpisode(episode)}
             >
               <div className="episode-thumb">
                 <img src={episode.thumbnail} alt={episode.title} />
-                {!isVip && !episode.isFree && (
+                {!isVip && !episode.is_free && (
                   <div className="episode-lock">
                     <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16">
                       <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
@@ -189,11 +189,11 @@ const DramaDetailPage: React.FC = () => {
                 )}
               </div>
               <div className="episode-row-info">
-                <h3>第{episode.episodeNumber}集</h3>
+                <h3>第{episode.episode_number}集</h3>
                 <p>{episode.title}</p>
                 <span>{formatDuration(episode.duration)}</span>
               </div>
-              {!isVip && !episode.isFree && (
+              {!isVip && !episode.is_free && (
                 <span className="episode-lock-tag">VIP</span>
               )}
             </div>
@@ -232,11 +232,11 @@ const DramaDetailPage: React.FC = () => {
 
 const mockEpisodes: Episode[] = Array.from({ length: 20 }, (_, i) => ({
   id: `ep-${i + 1}`,
-  episodeNumber: i + 1,
+  episode_number: i + 1,
   title: `第${i + 1}集 - 命运的相遇`,
   duration: 120 + Math.floor(Math.random() * 60),
   thumbnail: `https://via.placeholder.com/160x90/1a1a2e/ffffff?text=EP${i + 1}`,
-  isFree: i < 3,
+  is_free: i < 3,
   isWatched: i < 2,
 }));
 
@@ -246,12 +246,12 @@ const mockDramaDetail: DramaDetail = {
   cover: 'https://images.unsplash.com/photo-1536440136628-849c177e76a1?w=400&h=600&fit=crop',
   description: '一个关于权力、爱情与背叛的史诗故事。在古老的帝国中，年轻的皇子必须在阴谋与战争中生存下来，最终登上皇位。',
   rating: 4.8,
-  totalEpisodes: 80,
+  total_episodes: 80,
   category: '古装',
   tags: ['古装', '权谋', '爱情', '复仇'],
   cast: ['张一凡', '李雨桐', '王浩然'],
   director: '陈大明',
-  releaseDate: '2026-01-15',
+  release_date: '2026-01-15',
   episodes: mockEpisodes,
 };
 
