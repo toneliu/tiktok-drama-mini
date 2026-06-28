@@ -35,9 +35,9 @@ apiClient.interceptors.response.use(
     if (error.response) {
       switch (error.response.status) {
         case 401:
-          // 未授权，清除token并跳转登录
+          // 未授权，清除token并跳转登录（用 origin 拼接以保留当前 host:port）
           localStorage.removeItem('token');
-          window.location.href = '/login';
+          window.location.href = window.location.origin + '/login';
           break;
         case 403:
           console.error('没有权限访问');
