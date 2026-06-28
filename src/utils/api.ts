@@ -86,8 +86,8 @@ export const api = {
     // 获取播放地址
     getPlayUrl: (episodeId: string) => apiClient.get(`/episode/${episodeId}/play`),
     // 记录观看进度
-    recordProgress: (episodeId: string, progress: number) =>
-      apiClient.post(`/episode/${episodeId}/progress`, { progress }),
+    recordProgress: (episodeId: string, progress: number, duration: number) =>
+      apiClient.post(`/episode/${episodeId}/progress`, { progress, duration }),
     // 获取观看历史
     getHistory: () => apiClient.get('/user/watch-history'),
   },

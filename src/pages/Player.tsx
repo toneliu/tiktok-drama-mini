@@ -22,6 +22,8 @@ const Player: React.FC = () => {
   const { currentDrama, setCurrentDrama, setCurrentEpisode, setProgress } = usePlayStore();
 
   const feedRef = useRef<HTMLDivElement>(null);
+  const lastRecordRef = useRef<number>(0); // 上次记录时间（毫秒）
+  const prevIndexRef = useRef<number>(-1); // 上一次 activeIndex（换集时用）
   const [isLoading, setIsLoading] = useState(true);
   const [episodeList, setEpisodeList] = useState<Episode[]>([]);
   const [drama, setDrama] = useState<any>(currentDrama);
@@ -103,7 +105,7 @@ const Player: React.FC = () => {
     return () => observer.disconnect();
   }, [episodeList]);
 
-  // activeIndex 变化时：更新 URL（replace）+ 记录 playStore
+  // activeIndex 变化时：更新 URL（replace）+ 记录上一集的最终进度
   useEffect(() => {
     if (!episodeList.length) return;
     const ep = episodeList[activeIndex];
@@ -112,7 +114,35 @@ const Player: React.FC = () => {
     if (ep.id !== episodeId) {
       navigate(`/play/${ep.id}`, { replace: true });
     }
+    // 换集时：记录前一集的最终进度
+    if (prevIndexRef.current >= 0 && prevIndexRef.current < episodeList.length) {
+      const prevEp = episodeList[prevIndexRef.current];
+      const saved = (window as any).__episodeProgress?.[prevEp.id];
+      if (saved) {
+        api.drama.recordProgress(prevEp.id, Math.floor(saved.currentTime), Math.floor(saved.duration)).catch(() => {});
+      }
+    }
+    prevIndexRef.current = activeIndex;
   }, [activeIndex, episodeList]);
+
+  // 进度记录回调（由 VideoSlide 调用，节流 10 秒）
+  const handleProgress = useCallback(
+    (episodeId: string, currentTime: number, duration: number) => {
+      setProgress(currentTime, duration);
+      // 节流：每 10 秒才真正写后端
+      const now = Date.now();
+      if (now - lastRecordRef.current >= 10000) {
+        lastRecordRef.current = now;
+        api.drama.recordProgress(episodeId, Math.floor(currentTime), Math.floor(duration)).catch(() => {});
+      }
+      // 同时暂存到 window（供换集时读取）
+      if (!(window as any).__episodeProgress) {
+        (window as any).__episodeProgress = {};
+      }
+      (window as any).__episodeProgress[episodeId] = { currentTime, duration };
+    },
+    [setProgress]
+  );
 
   const scrollToIndex = useCallback((idx: number) => {
     const feed = feedRef.current;
@@ -173,10 +203,7 @@ const Player: React.FC = () => {
             onBack={() => navigate(-1)}
             onShowList={() => setShowEpisodeList(true)}
             onSubscribe={() => navigate('/subscription')}
-            onProgress={(t, d) => {
-              setProgress(t, d);
-              // 节流记录：仅在每 10 秒或切换时由父组件处理
-            }}
+            onProgress={handleProgress}
             hasPrev={index > 0}
             hasNext={index < episodeList.length - 1}
           />
