@@ -18,6 +18,7 @@ import MoneyLogs from './pages/MoneyLogs'
 import WatchHistory from './pages/WatchHistory'
 import Subscriptions from './pages/Subscriptions'
 import SubscriptionPlans from './pages/SubscriptionPlans'
+import StorageConfig from './pages/StorageConfig'
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const token = localStorage.getItem('admin_token')
@@ -58,6 +59,7 @@ export default function App() {
           <Route path="watch-history" element={<WatchHistory />} />
           <Route path="subscriptions" element={<Subscriptions />} />
           <Route path="subscription-plans" element={<SubscriptionPlans />} />
+          <Route path="storage-config" element={<StorageConfig />} />
         </Route>
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes>

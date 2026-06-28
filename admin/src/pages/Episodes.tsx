@@ -99,7 +99,7 @@ export default function Episodes() {
     },
     { name: 'episode_number', label: '集数', type: 'number' as const, required: true, min: 1, span: 12 },
     { name: 'title', label: '标题', type: 'text' as const, span: 12 },
-    { name: 'thumbnail', label: '缩略图地址', type: 'text' as const, span: 24 },
+    { name: 'thumbnail', label: '缩略图', type: 'image' as const, span: 24 },
     { name: 'duration', label: '时长(秒)', type: 'number' as const, min: 0, span: 12 },
     {
       name: 'play_source',
@@ -111,7 +111,7 @@ export default function Episodes() {
         { label: 'TikTok', value: 'tiktok' },
       ],
     },
-    { name: 'play_url', label: '播放地址(CDN)', type: 'text' as const, span: 24 },
+    { name: 'play_url', label: '视频文件', type: 'video' as const, span: 24 },
     { name: 'tiktok_video_id', label: 'TikTok视频ID', type: 'text' as const, span: 12 },
     { name: 'is_free', label: '是否免费', type: 'switch' as const, span: 12 },
   ]

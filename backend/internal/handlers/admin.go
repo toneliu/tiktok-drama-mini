@@ -4,12 +4,14 @@ import (
 	"crypto/rand"
 	"math/big"
 	"net/http"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/dramamax/backend/internal/database"
 	"github.com/dramamax/backend/internal/models"
+	"github.com/dramamax/backend/internal/storage"
 	"github.com/dramamax/backend/internal/utils"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -179,6 +181,207 @@ func (h *AdminHandler) GetProfile(c *gin.Context) {
 // Logout 管理员登出（无状态 JWT，直接返回成功）
 func (h *AdminHandler) Logout(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"success": true})
+}
+
+// ===================== Upload =====================
+
+// UploadImage 管理后台上传图片，OSS 优先本地兜底
+func (h *AdminHandler) UploadImage(c *gin.Context) {
+	file, err := c.FormFile("file")
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "未接收到上传文件"})
+		return
+	}
+
+	// 限制 10MB
+	if file.Size > 10*1024*1024 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "文件大小不能超过 10MB"})
+		return
+	}
+
+	// 校验扩展名
+	ext := strings.ToLower(filepath.Ext(file.Filename))
+	allowed := map[string]bool{".jpg": true, ".jpeg": true, ".png": true, ".gif": true, ".webp": true}
+	if !allowed[ext] {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "仅支持 jpg/jpeg/png/gif/webp 格式"})
+		return
+	}
+
+	src, err := file.Open()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "打开文件失败"})
+		return
+	}
+	defer src.Close()
+
+	store := storage.GetStorage("images")
+	url, _, err := store.Upload(src, ext, file.Header.Get("Content-Type"))
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "上传失败: " + err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"url":    url,
+		"path":   url,
+		"engine": store.Name(),
+	})
+}
+
+// UploadVideo 管理后台上传视频，OSS 优先本地兜底
+func (h *AdminHandler) UploadVideo(c *gin.Context) {
+	file, err := c.FormFile("file")
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "未接收到上传文件"})
+		return
+	}
+
+	// 限制 500MB
+	if file.Size > 500*1024*1024 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "视频大小不能超过 500MB"})
+		return
+	}
+
+	// 校验扩展名
+	ext := strings.ToLower(filepath.Ext(file.Filename))
+	allowed := map[string]bool{".mp4": true, ".m3u8": true, ".ts": true, ".mov": true, ".m4v": true}
+	if !allowed[ext] {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "仅支持 mp4/m3u8/ts/mov/m4v 格式"})
+		return
+	}
+
+	src, err := file.Open()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "打开文件失败"})
+		return
+	}
+	defer src.Close()
+
+	store := storage.GetStorage("videos")
+	contentType := file.Header.Get("Content-Type")
+	if contentType == "" || contentType == "application/octet-stream" {
+		contentType = "video/mp4"
+	}
+	url, _, err := store.Upload(src, ext, contentType)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "上传失败: " + err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"url":    url,
+		"path":   url,
+		"engine": store.Name(),
+		"size":   file.Size,
+	})
+}
+
+// ===================== Storage Config =====================
+
+// GetStorageConfig 获取存储配置
+func (h *AdminHandler) GetStorageConfig(c *gin.Context) {
+	if database.IsDemo {
+		c.JSON(http.StatusOK, gin.H{
+			"storage_type":  "local",
+			"oss_provider":  "",
+			"oss_endpoint":  "",
+			"oss_access_key": "",
+			"oss_secret_key": "",
+			"oss_bucket":    "",
+			"oss_domain":    "",
+			"oss_status":    "hidden",
+		})
+		return
+	}
+	var cfg models.StorageConfig
+	if err := database.DB.First(&cfg).Error; err != nil {
+		// 不存在则返回默认本地配置
+		c.JSON(http.StatusOK, gin.H{
+			"storage_type":  "local",
+			"oss_provider":  "aliyun",
+			"oss_endpoint":  "",
+			"oss_access_key": "",
+			"oss_secret_key": "",
+			"oss_bucket":    "",
+			"oss_domain":    "",
+			"oss_status":    "hidden",
+		})
+		return
+	}
+	// 脱敏：不返回 secret_key 明文，只返回是否已设置
+	hasSecret := cfg.OSSSecretKey != ""
+	resp := gin.H{
+		"storage_type":   cfg.StorageType,
+		"oss_provider":   cfg.OSSProvider,
+		"oss_endpoint":   cfg.OSSEndpoint,
+		"oss_access_key": cfg.OSSAccessKey,
+		"oss_secret_key": "",
+		"oss_secret_set": hasSecret,
+		"oss_bucket":     cfg.OSSBucket,
+		"oss_domain":     cfg.OSSDomain,
+		"oss_status":     cfg.OSSStatus,
+	}
+	c.JSON(http.StatusOK, resp)
+}
+
+// UpdateStorageConfig 更新存储配置
+func (h *AdminHandler) UpdateStorageConfig(c *gin.Context) {
+	var req struct {
+		StorageType  string `json:"storage_type"`
+		OSSProvider  string `json:"oss_provider"`
+		OSSEndpoint  string `json:"oss_endpoint"`
+		OSSAccessKey string `json:"oss_access_key"`
+		OSSSecretKey string `json:"oss_secret_key"`
+		OSSBucket    string `json:"oss_bucket"`
+		OSSDomain    string `json:"oss_domain"`
+		OSSStatus    string `json:"oss_status"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	if database.IsDemo {
+		c.JSON(http.StatusOK, gin.H{"message": "ok"})
+		return
+	}
+
+	var cfg models.StorageConfig
+	err := database.DB.First(&cfg).Error
+	if err != nil {
+		// 不存在则创建
+		cfg = models.StorageConfig{
+			StorageType:  "local",
+			OSSProvider:  "aliyun",
+		}
+	}
+
+	cfg.StorageType = req.StorageType
+	if cfg.StorageType == "" {
+		cfg.StorageType = "local"
+	}
+	cfg.OSSProvider = req.OSSProvider
+	if cfg.OSSProvider == "" {
+		cfg.OSSProvider = "aliyun"
+	}
+	cfg.OSSEndpoint = strings.TrimSpace(req.OSSEndpoint)
+	cfg.OSSAccessKey = strings.TrimSpace(req.OSSAccessKey)
+	// secret_key 留空表示不修改
+	if strings.TrimSpace(req.OSSSecretKey) != "" {
+		cfg.OSSSecretKey = strings.TrimSpace(req.OSSSecretKey)
+	}
+	cfg.OSSBucket = strings.TrimSpace(req.OSSBucket)
+	cfg.OSSDomain = strings.TrimSpace(req.OSSDomain)
+	cfg.OSSStatus = req.OSSStatus
+	if cfg.OSSStatus == "" {
+		cfg.OSSStatus = "hidden"
+	}
+
+	if err := database.DB.Save(&cfg).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "ok"})
 }
 
 // ===================== Dashboard =====================

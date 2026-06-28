@@ -76,7 +76,7 @@ export default function Banners() {
   const formFields = [
     { name: 'title', label: '标题', type: 'text' as const, required: true, span: 12 },
     { name: 'weigh', label: '排序', type: 'number' as const, min: 0, span: 12 },
-    { name: 'img', label: '图片地址', type: 'text' as const, span: 24 },
+    { name: 'img', label: '图片', type: 'image' as const, span: 24 },
     { name: 'path', label: '跳转链接', type: 'text' as const, span: 24 },
     { name: 'type', label: '类型', type: 'text' as const, span: 12 },
     { name: 'area', label: '区域', type: 'text' as const, span: 12 },

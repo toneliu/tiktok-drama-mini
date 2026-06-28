@@ -67,6 +67,33 @@ export const dashboardApi = {
   stats: () => request.get('/dashboard/stats'),
 }
 
+// ===== 文件上传 =====
+export const uploadApi = {
+  // 上传图片，返回 {url, path, engine}
+  image: (file: File) => {
+    const formData = new FormData()
+    formData.append('file', file)
+    return request.post('/upload', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
+  },
+  // 上传视频，返回 {url, path, engine, size}
+  video: (file: File) => {
+    const formData = new FormData()
+    formData.append('file', file)
+    return request.post('/upload/video', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+      timeout: 600000, // 10 分钟，视频上传较慢
+    })
+  },
+}
+
+// ===== 存储配置（OSS）=====
+export const storageConfigApi = {
+  get: () => request.get('/storage-config'),
+  update: (data: any) => request.put('/storage-config', data),
+}
+
 // ===== 剧目 =====
 export const dramaApi = {
   list: (params: PageParams) => request.get('/dramas', { params }),

@@ -70,7 +70,7 @@ export default function Dramas() {
 
   const formFields = [
     { name: 'title', label: '标题', type: 'text' as const, required: true, span: 24 },
-    { name: 'cover', label: '封面地址', type: 'text' as const, span: 24 },
+    { name: 'cover', label: '封面图', type: 'image' as const, span: 24 },
     { name: 'category', label: '分类', type: 'text' as const, span: 12 },
     { name: 'total_episodes', label: '总集数', type: 'number' as const, min: 0, span: 12 },
     { name: 'rating', label: '评分', type: 'number' as const, min: 0, max: 10, step: 0.1, span: 12 },

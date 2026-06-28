@@ -82,6 +82,7 @@ const menuConfig: MenuItem[] = [
       { key: '/feedback', icon: <SettingOutlined />, label: '意见反馈' },
       { key: '/checkin-configs', icon: <SettingOutlined />, label: '签到配置' },
       { key: '/task-configs', icon: <SettingOutlined />, label: '任务配置' },
+      { key: '/storage-config', icon: <SettingOutlined />, label: '存储配置' },
     ],
   },
 ]
@@ -104,6 +105,7 @@ const breadcrumbMap: Record<string, string> = {
   '/feedback': '意见反馈',
   '/checkin-configs': '签到配置',
   '/task-configs': '任务配置',
+  '/storage-config': '存储配置',
 }
 
 const groupMap: Record<string, string> = {
@@ -124,6 +126,7 @@ const groupMap: Record<string, string> = {
   '/feedback': '常规管理',
   '/checkin-configs': '常规管理',
   '/task-configs': '常规管理',
+  '/storage-config': '常规管理',
 }
 
 export default function Layout() {

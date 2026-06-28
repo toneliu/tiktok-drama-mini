@@ -59,6 +59,10 @@ func registerRoutes(r *gin.Engine) {
 			user.GET("/profile", middleware.Auth(), userHandler.GetProfile)
 			user.PUT("/profile", middleware.Auth(), userHandler.UpdateProfile)
 			user.GET("/watch-history", middleware.Auth(), userHandler.GetWatchHistory)
+			user.GET("/favorites", middleware.Auth(), userHandler.GetFavorites)
+			user.POST("/favorites", middleware.Auth(), userHandler.AddFavorite)
+			user.DELETE("/favorites/:dramaId", middleware.Auth(), userHandler.RemoveFavorite)
+			user.GET("/favorites/:dramaId/check", middleware.Auth(), userHandler.CheckFavorite)
 		}
 
 		// 剧集相关
@@ -99,6 +103,9 @@ func registerRoutes(r *gin.Engine) {
 	// 管理后台路由
 	registerAdminRoutes(r)
 
+	// 静态文件：上传的图片
+	r.Static("/uploads", "./data/uploads")
+
 	// 健康检查
 	r.GET("/health", func(c *gin.Context) {
 		c.JSON(200, gin.H{"status": "ok"})
@@ -114,6 +121,10 @@ func registerAdminRoutes(r *gin.Engine) {
 		admin.Use(middleware.AdminAuth()) // JWT auth middleware for admin
 		admin.GET("/profile", adminHandler.GetProfile)
 		admin.POST("/logout", adminHandler.Logout)
+		admin.POST("/upload", adminHandler.UploadImage)
+		admin.POST("/upload/video", adminHandler.UploadVideo)
+		admin.GET("/storage-config", adminHandler.GetStorageConfig)
+		admin.PUT("/storage-config", adminHandler.UpdateStorageConfig)
 		admin.GET("/dashboard/stats", adminHandler.GetStats)
 
 		// Dramas

@@ -175,6 +175,22 @@ func (w *WatchHistory) BeforeCreate(tx *gorm.DB) error {
 	return nil
 }
 
+// Favorite 收藏
+type Favorite struct {
+	ID        uuid.UUID      `json:"id" gorm:"type:char(36);primaryKey"`
+	UserID    uuid.UUID      `json:"user_id" gorm:"type:char(36);index"`
+	DramaID   uuid.UUID      `json:"drama_id" gorm:"type:char(36);index"`
+	CreatedAt time.Time      `json:"created_at"`
+	DeletedAt gorm.DeletedAt `json:"-" gorm:"index"`
+}
+
+func (f *Favorite) BeforeCreate(tx *gorm.DB) error {
+	if f.ID == uuid.Nil {
+		f.ID = uuid.New()
+	}
+	return nil
+}
+
 // Admin 管理员
 type Admin struct {
 	ID        uint           `json:"id" gorm:"primaryKey;autoIncrement"`
@@ -351,4 +367,23 @@ type MoneyLog struct {
 	Remark    string         `json:"remark" gorm:"size:256"`
 	CreatedAt time.Time      `json:"created_at"`
 	DeletedAt gorm.DeletedAt `json:"-" gorm:"index"`
+}
+
+// StorageConfig 存储配置（单行记录，id=1）
+type StorageConfig struct {
+	ID            uint   `json:"id" gorm:"primaryKey;autoIncrement"`
+	// 当前存储后端: "local" 或 "oss"
+	StorageType   string `json:"storage_type" gorm:"size:16;default:local"`
+	// OSS 凭证（阿里云 OSS）
+	OSSProvider   string `json:"oss_provider" gorm:"size:32"`        // aliyun
+	OSSEndpoint   string `json:"oss_endpoint" gorm:"size:256"`       // oss-cn-hangzhou.aliyuncs.com
+	OSSAccessKey  string `json:"oss_access_key" gorm:"size:256"`
+	OSSSecretKey  string `json:"oss_secret_key" gorm:"size:256"`
+	OSSBucket     string `json:"oss_bucket" gorm:"size:128"`
+	// 访问域名（CDN 或 OSS 绑定域名，末尾不带斜杠），留空则用 OSS 默认域名
+	OSSDomain     string `json:"oss_domain" gorm:"size:256"`
+	// 是否启用
+	OSSStatus     string `json:"oss_status" gorm:"size:16;default:hidden"` // normal, hidden
+	CreatedAt     time.Time      `json:"created_at"`
+	UpdatedAt     time.Time      `json:"updated_at"`
 }

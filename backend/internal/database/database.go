@@ -108,11 +108,12 @@ func autoMigrate() error {
 	if err := DB.AutoMigrate(
 		&models.User{}, &models.Drama{}, &models.Episode{},
 		&models.SubscriptionPlan{}, &models.Subscription{},
-		&models.PaymentOrder{}, &models.WatchHistory{},
+		&models.PaymentOrder{}, &models.WatchHistory{}, &models.Favorite{},
 		&models.Admin{}, &models.Banner{}, &models.Feedback{},
 		&models.RechargePlan{}, &models.RechargeRecord{},
 		&models.RedeemBatch{}, &models.RedeemCode{}, &models.RedeemLog{},
 		&models.TaskConfig{}, &models.CheckinConfig{}, &models.MoneyLog{},
+		&models.StorageConfig{},
 	); err != nil {
 		return err
 	}

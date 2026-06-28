@@ -86,8 +86,19 @@ export const api = {
     recordProgress: (episodeId: string, progress: number) =>
       apiClient.post(`/episode/${episodeId}/progress`, { progress }),
     // 获取观看历史
-    getHistory: (page = 1, limit = 20) =>
-      apiClient.get('/user/watch-history', { params: { page, limit } }),
+    getHistory: () => apiClient.get('/user/watch-history'),
+  },
+
+  // 收藏相关
+  favorite: {
+    // 获取收藏列表
+    getList: () => apiClient.get('/user/favorites'),
+    // 添加收藏
+    add: (dramaId: string) => apiClient.post('/user/favorites', { drama_id: dramaId }),
+    // 取消收藏
+    remove: (dramaId: string) => apiClient.delete(`/user/favorites/${dramaId}`),
+    // 检查是否已收藏
+    check: (dramaId: string) => apiClient.get(`/user/favorites/${dramaId}/check`),
   },
 
   // 订阅相关
