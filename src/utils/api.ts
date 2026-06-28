@@ -62,6 +62,9 @@ export const api = {
   user: {
     // TikTok登录
     login: (code: string) => apiClient.post('/user/login', { code }),
+    // 游客登录（Web 端快速体验）
+    guestLogin: (guestId?: string) =>
+      apiClient.post('/user/guest-login', { guest_id: guestId }),
     // 获取用户信息
     getProfile: () => apiClient.get('/user/profile'),
     // 更新用户信息

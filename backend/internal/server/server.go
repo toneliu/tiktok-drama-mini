@@ -56,6 +56,7 @@ func registerRoutes(r *gin.Engine) {
 		user := v1.Group("/user")
 		{
 			user.POST("/login", userHandler.Login)
+			user.POST("/guest-login", userHandler.GuestLogin)
 			user.GET("/profile", middleware.Auth(), userHandler.GetProfile)
 			user.PUT("/profile", middleware.Auth(), userHandler.UpdateProfile)
 			user.GET("/watch-history", middleware.Auth(), userHandler.GetWatchHistory)
@@ -64,6 +65,9 @@ func registerRoutes(r *gin.Engine) {
 			user.DELETE("/favorites/:dramaId", middleware.Auth(), userHandler.RemoveFavorite)
 			user.GET("/favorites/:dramaId/check", middleware.Auth(), userHandler.CheckFavorite)
 		}
+
+		// 客户端公开配置
+		v1.GET("/app-config", userHandler.GetAppConfig)
 
 		// 剧集相关
 		dramaHandler := &handlers.DramaHandler{}
@@ -125,6 +129,8 @@ func registerAdminRoutes(r *gin.Engine) {
 		admin.POST("/upload/video", adminHandler.UploadVideo)
 		admin.GET("/storage-config", adminHandler.GetStorageConfig)
 		admin.PUT("/storage-config", adminHandler.UpdateStorageConfig)
+		admin.GET("/app-config", adminHandler.GetAppConfig)
+		admin.PUT("/app-config", adminHandler.UpdateAppConfig)
 		admin.GET("/dashboard/stats", adminHandler.GetStats)
 
 		// Dramas

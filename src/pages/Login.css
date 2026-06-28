@@ -119,6 +119,45 @@
   font-size: 18px;
 }
 
+.guest-icon {
+  font-size: 18px;
+}
+
+/* 分隔线 */
+.login-divider {
+  display: flex;
+  align-items: center;
+  text-align: center;
+  margin: 18px 0;
+  color: rgba(255, 255, 255, 0.35);
+  font-size: 12px;
+}
+
+.login-divider::before,
+.login-divider::after {
+  content: '';
+  flex: 1;
+  height: 0.5px;
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.login-divider span {
+  padding: 0 14px;
+}
+
+/* 次要按钮（TikTok 登录，Web 环境下） */
+.login-button.login-button-secondary {
+  background: rgba(255, 255, 255, 0.08);
+  color: #ffffff;
+  border: 0.5px solid rgba(255, 255, 255, 0.2);
+  box-shadow: none;
+}
+
+.login-button.login-button-secondary:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.14);
+  box-shadow: none;
+}
+
 .loading-spinner {
   width: 18px;
   height: 18px;

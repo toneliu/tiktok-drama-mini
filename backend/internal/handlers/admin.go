@@ -384,6 +384,80 @@ func (h *AdminHandler) UpdateStorageConfig(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "ok"})
 }
 
+// ===================== App Config =====================
+
+func (h *AdminHandler) GetAppConfig(c *gin.Context) {
+	if database.IsDemo {
+		c.JSON(http.StatusOK, gin.H{
+			"platform_name": "TikTok短剧",
+			"logo":         "",
+			"icon":         "",
+			"banner":       "",
+			"about_text":   "",
+			"contact_text": "",
+			"privacy_text": "",
+			"terms_text":   "",
+			"version":      "1.0.0",
+			"force_update": false,
+			"min_version":  "",
+		})
+		return
+	}
+
+	var cfg models.AppConfig
+	if err := database.DB.First(&cfg).Error; err != nil {
+		cfg = models.AppConfig{}
+	}
+	c.JSON(http.StatusOK, cfg)
+}
+
+func (h *AdminHandler) UpdateAppConfig(c *gin.Context) {
+	var req struct {
+		PlatformName string `json:"platform_name"`
+		Logo         string `json:"logo"`
+		Icon         string `json:"icon"`
+		Banner       string `json:"banner"`
+		AboutText    string `json:"about_text"`
+		ContactText  string `json:"contact_text"`
+		PrivacyText  string `json:"privacy_text"`
+		TermsText    string `json:"terms_text"`
+		Version      string `json:"version"`
+		ForceUpdate  bool   `json:"force_update"`
+		MinVersion   string `json:"min_version"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	if database.IsDemo {
+		c.JSON(http.StatusOK, gin.H{"message": "ok"})
+		return
+	}
+
+	var cfg models.AppConfig
+	database.DB.FirstOrCreate(&cfg, models.AppConfig{})
+
+	updates := map[string]interface{}{}
+	if req.PlatformName != "" {
+		updates["platform_name"] = req.PlatformName
+	}
+	updates["logo"] = req.Logo
+	updates["icon"] = req.Icon
+	updates["banner"] = req.Banner
+	updates["about_text"] = req.AboutText
+	updates["contact_text"] = req.ContactText
+	updates["privacy_text"] = req.PrivacyText
+	updates["terms_text"] = req.TermsText
+	updates["version"] = req.Version
+	updates["force_update"] = req.ForceUpdate
+	updates["min_version"] = req.MinVersion
+
+	database.DB.Model(&cfg).Updates(updates)
+	database.DB.First(&cfg)
+	c.JSON(http.StatusOK, cfg)
+}
+
 // ===================== Dashboard =====================
 
 // GetStats 返回仪表盘统计数据

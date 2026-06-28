@@ -22,13 +22,9 @@ interface UserState {
 export const useUserStore = create<UserState>()(
   persist(
     (set) => ({
-      isLoggedIn: true,
-      userInfo: {
-        openId: 'mock_demo_user',
-        nickname: 'Demo User',
-        avatarUrl: 'https://via.placeholder.com/80/4ecdc4/ffffff?text=DU',
-      },
-      token: 'mock_token_for_demo',
+      isLoggedIn: false,
+      userInfo: null,
+      token: null,
       isVip: false,
       vipExpireAt: null,
       
@@ -36,22 +32,29 @@ export const useUserStore = create<UserState>()(
         userInfo: info, 
         isLoggedIn: true 
       }),
-      setToken: (token) => set({ token }),
+      setToken: (token) => {
+        // 同步到独立的 localStorage('token')，供 axios 拦截器读取
+        if (token) {
+          localStorage.setItem('token', token);
+        } else {
+          localStorage.removeItem('token');
+        }
+        set({ token });
+      },
       setVip: (isVip, expireAt) => set({ 
         isVip, 
         vipExpireAt: expireAt || null 
       }),
-      logout: () => set({ 
-        isLoggedIn: true, 
-        userInfo: {
-          openId: 'mock_demo_user',
-          nickname: 'Demo User',
-          avatarUrl: 'https://via.placeholder.com/80/4ecdc4/ffffff?text=DU',
-        },
-        token: 'mock_token_for_demo',
-        isVip: false,
-        vipExpireAt: null,
-      }),
+      logout: () => {
+        localStorage.removeItem('token');
+        set({ 
+          isLoggedIn: false, 
+          userInfo: null,
+          token: null,
+          isVip: false,
+          vipExpireAt: null,
+        });
+      },
     }),
     {
       name: 'user-storage',

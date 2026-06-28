@@ -62,6 +62,47 @@ func (h *UserHandler) Login(c *gin.Context) {
 	})
 }
 
+// GuestLogin 游客登录（Web 端快速体验，无需 TikTok）
+// 通过 guest_id 复用同一游客账号，保证刷新后收藏/历史不丢失
+func (h *UserHandler) GuestLogin(c *gin.Context) {
+	var req struct {
+		GuestID string `json:"guest_id"`
+	}
+	_ = c.ShouldBindJSON(&req)
+
+	if database.IsDemo {
+		user := database.MockUser()
+		token, _ := utils.GenerateToken(user.ID)
+		c.JSON(http.StatusOK, LoginResponse{Token: token, User: user})
+		return
+	}
+
+	openID := "guest_web"
+	if req.GuestID != "" {
+		openID = "guest_" + req.GuestID
+	}
+
+	var user models.User
+	result := database.DB.Where("open_id = ?", openID).First(&user)
+	if result.Error != nil {
+		user = models.User{
+			ID:       uuid.New(),
+			OpenID:   openID,
+			Nickname: "游客用户",
+		}
+		if err := database.DB.Create(&user).Error; err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "创建游客失败"})
+			return
+		}
+	}
+
+	token, _ := utils.GenerateToken(user.ID)
+	c.JSON(http.StatusOK, LoginResponse{
+		Token: token,
+		User:  &user,
+	})
+}
+
 func (h *UserHandler) GetProfile(c *gin.Context) {
 	userID := c.GetString("userID")
 
@@ -344,4 +385,13 @@ func (h *UserHandler) CheckFavorite(c *gin.Context) {
 	database.DB.Model(&models.Favorite{}).
 		Where("user_id = ? AND drama_id = ?", userUUID, dramaUUID).Count(&count)
 	c.JSON(http.StatusOK, gin.H{"is_favorite": count > 0})
+}
+
+// GetAppConfig 返回客户端配置（公开，无需登录）
+func (h *UserHandler) GetAppConfig(c *gin.Context) {
+	var cfg models.AppConfig
+	if err := database.DB.First(&cfg).Error; err != nil {
+		cfg = models.AppConfig{PlatformName: "TikTok短剧", Version: "1.0.0"}
+	}
+	c.JSON(http.StatusOK, gin.H{"data": cfg})
 }

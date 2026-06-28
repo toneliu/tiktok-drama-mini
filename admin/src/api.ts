@@ -104,6 +104,12 @@ export const storageConfigApi = {
   update: (data: any) => request.put('/storage-config', data),
 }
 
+// ===== 平台配置（App）=====
+export const appConfigApi = {
+  get: () => request.get('/app-config'),
+  update: (data: any) => request.put('/app-config', data),
+}
+
 // ===== 剧目 =====
 export const dramaApi = {
   list: (params: PageParams) => request.get('/dramas', { params }),

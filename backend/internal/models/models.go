@@ -387,3 +387,21 @@ type StorageConfig struct {
 	CreatedAt     time.Time      `json:"created_at"`
 	UpdatedAt     time.Time      `json:"updated_at"`
 }
+
+// AppConfig 客户端平台配置（单行记录，id=1）
+type AppConfig struct {
+	ID            uint      `json:"id" gorm:"primaryKey;autoIncrement"`
+	PlatformName  string    `json:"platform_name" gorm:"size:128;default:TikTok短剧"`   // 平台名称
+	Logo          string    `json:"logo" gorm:"size:512"`                              // Logo 图片 URL
+	Icon          string    `json:"icon" gorm:"size:512"`                              // App 图标
+	Banner        string    `json:"banner" gorm:"size:512"`                            // 首页 Banner 图
+	AboutText     string    `json:"about_text" gorm:"type:text"`                       // 关于我们文字
+	ContactText   string    `json:"contact_text" gorm:"size:512"`                      // 联系方式文字
+	PrivacyText   string    `json:"privacy_text" gorm:"type:text"`                    // 隐私政策
+	TermsText     string    `json:"terms_text" gorm:"type:text"`                      // 用户协议
+	Version       string    `json:"version" gorm:"size:32;default:1.0.0"`             // 客户端版本
+	ForceUpdate   bool      `json:"force_update" gorm:"default:false"`                // 是否强制更新
+	MinVersion    string    `json:"min_version" gorm:"size:32"`                       // 最低支持版本
+	CreatedAt     time.Time `json:"created_at"`
+	UpdatedAt     time.Time `json:"updated_at"`
+}

@@ -9,32 +9,57 @@ const Login: React.FC = () => {
   const navigate = useNavigate();
   const { setUserInfo, setToken, setVip } = useUserStore();
   const [isLoading, setIsLoading] = React.useState(false);
+  const [loadingMode, setLoadingMode] = React.useState<'tiktok' | 'guest' | null>(null);
+  const isMiniApp = tiktokSDK.isMiniApp();
 
-  const handleLogin = async () => {
+  // 获取或生成游客唯一标识，保证刷新后复用同一游客账号
+  const getGuestId = (): string => {
+    let id = localStorage.getItem('guest_id');
+    if (!id) {
+      id = 'g_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
+      localStorage.setItem('guest_id', id);
+    }
+    return id;
+  };
+
+  // TikTok 登录（Minis 环境）
+  const handleTiktokLogin = async () => {
+    setLoadingMode('tiktok');
     setIsLoading(true);
     try {
-      // 1. 调用TikTok登录获取code
       const code = await tiktokSDK.login();
-      
-      // 2. 发送code到后端换取token
       const res: any = await api.user.login(code);
-      
-      // 3. 保存用户信息
       setToken(res.token);
       setUserInfo(res.user);
-      
-      // 4. 获取订阅状态
       if (res.subscription) {
         setVip(res.subscription.isActive, res.subscription.expireAt);
       }
-      
-      // 5. 跳转首页
       navigate('/');
     } catch (error) {
-      console.error('Login failed:', error);
-      alert('Login failed, please try again');
+      console.error('TikTok login failed:', error);
+      alert('登录失败，请重试');
     } finally {
       setIsLoading(false);
+      setLoadingMode(null);
+    }
+  };
+
+  // 游客登录（Web 端快速体验）
+  const handleGuestLogin = async () => {
+    setLoadingMode('guest');
+    setIsLoading(true);
+    try {
+      const guestId = getGuestId();
+      const res: any = await api.user.guestLogin(guestId);
+      setToken(res.token);
+      setUserInfo(res.user);
+      navigate('/');
+    } catch (error) {
+      console.error('Guest login failed:', error);
+      alert('登录失败，请重试');
+    } finally {
+      setIsLoading(false);
+      setLoadingMode(null);
     }
   };
 
@@ -66,27 +91,67 @@ const Login: React.FC = () => {
           </div>
         </div>
 
-        <button 
-          className="login-button"
-          onClick={handleLogin}
-          disabled={isLoading}
-        >
-          {isLoading ? (
-            <span className="loading-spinner"></span>
-          ) : (
-            <>
-              <span className="tiktok-icon">🎵</span>
-              Continue with TikTok
-            </>
-          )}
-        </button>
+        {/* Web 环境：主推游客登录 */}
+        {!isMiniApp && (
+          <>
+            <button 
+              className="login-button"
+              onClick={handleGuestLogin}
+              disabled={isLoading}
+            >
+              {loadingMode === 'guest' ? (
+                <span className="loading-spinner"></span>
+              ) : (
+                <>
+                  <span className="guest-icon">⚡</span>
+                  快速体验
+                </>
+              )}
+            </button>
+
+            <div className="login-divider">
+              <span>或</span>
+            </div>
+
+            <button 
+              className="login-button login-button-secondary"
+              onClick={handleTiktokLogin}
+              disabled={isLoading}
+            >
+              {loadingMode === 'tiktok' ? (
+                <span className="loading-spinner"></span>
+              ) : (
+                <>
+                  <span className="tiktok-icon">🎵</span>
+                  Continue with TikTok
+                </>
+              )}
+            </button>
+          </>
+        )}
+
+        {/* TikTok Minis 环境：TikTok 登录为主 */}
+        {isMiniApp && (
+          <button 
+            className="login-button"
+            onClick={handleTiktokLogin}
+            disabled={isLoading}
+          >
+            {isLoading ? (
+              <span className="loading-spinner"></span>
+            ) : (
+              <>
+                <span className="tiktok-icon">🎵</span>
+                Continue with TikTok
+              </>
+            )}
+          </button>
+        )}
 
         <p className="login-terms">
           By continuing, you agree to our<br />
           <a href="/terms">Terms of Service</a> and <a href="/privacy">Privacy Policy</a>
         </p>
-
-        <a href="/" className="skip-link">Continue as Guest →</a>
       </div>
     </div>
   );

@@ -113,7 +113,7 @@ func autoMigrate() error {
 		&models.RechargePlan{}, &models.RechargeRecord{},
 		&models.RedeemBatch{}, &models.RedeemCode{}, &models.RedeemLog{},
 		&models.TaskConfig{}, &models.CheckinConfig{}, &models.MoneyLog{},
-		&models.StorageConfig{},
+		&models.StorageConfig{}, &models.AppConfig{},
 	); err != nil {
 		return err
 	}
@@ -193,6 +193,15 @@ func seed() error {
 			{Title: "Share Drama", Type: "daily", TaskKey: "share_drama", RewardType: "coins", RewardAmount: 20, MaxTimes: 1, Status: "normal", OpLink: "/pages/index/index", Weigh: 80},
 		}
 		DB.Create(&tasks)
+	}
+
+	// 默认 AppConfig
+	var appConfigCount int64
+	if err := DB.Model(&models.AppConfig{}).Count(&appConfigCount).Error; err == nil && appConfigCount == 0 {
+		DB.Create(&models.AppConfig{
+			PlatformName: "TikTok短剧",
+			Version:      "1.0.0",
+		})
 	}
 
 	return nil

@@ -9,6 +9,7 @@ import Player from '@/pages/Player';
 import Subscription from '@/pages/Subscription';
 import Profile from '@/pages/Profile';
 import MyList from '@/pages/MyList';
+import { useUserStore } from '@/store';
 
 // Bottom Navigation Component
 const BottomNav: React.FC = () => {
@@ -77,6 +78,17 @@ function UserIcon({ active }: { active: boolean }) {
 
 // App Component
 const App: React.FC = () => {
+  // 启动时校验登录态：若 store 残留登录态但无真实 token，则清空
+  // （兼容旧版本持久化的 mock 登录态，避免 401 死循环）
+  React.useEffect(() => {
+    const { isLoggedIn, token, logout } = useUserStore.getState();
+    if (isLoggedIn && !localStorage.getItem('token')) {
+      logout();
+    } else if (token && !localStorage.getItem('token')) {
+      logout();
+    }
+  }, []);
+
   return (
     <BrowserRouter>
       <div className="app-container">
