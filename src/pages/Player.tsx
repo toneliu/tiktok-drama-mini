@@ -11,7 +11,7 @@ interface Episode {
   duration: number;
   playUrl: string;
   tiktokVideoId?: string;
-  playSource?: 'cdn' | 'tiktok';
+  playSource?: string; // local | oss | tos | qiniu | tiktok | external | cdn
 }
 
 const Player: React.FC = () => {

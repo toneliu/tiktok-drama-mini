@@ -11,6 +11,10 @@ export interface FieldConfig {
   rows?: number
   maxLength?: number
   span?: number
+  // 仅 'video' 类型：上传成功后，将返回的 engine（local/oss/tos/qiniu）自动写入指定字段
+  linkSourceField?: string
+  // 仅 'video' 类型：是否允许手动填写外链 URL（默认 true）
+  allowManualUrl?: boolean
 }
 
 export interface SearchField {

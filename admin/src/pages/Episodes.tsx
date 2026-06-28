@@ -57,11 +57,16 @@ export default function Episodes() {
     {
       title: '播放源',
       dataIndex: 'play_source',
-      width: 90,
+      width: 100,
       render: (v: string) => {
         const map: Record<string, { color: string; text: string }> = {
+          local: { color: 'default', text: '本地' },
+          oss: { color: 'blue', text: '阿里云OSS' },
+          tos: { color: 'purple', text: '火山TOS' },
+          qiniu: { color: 'green', text: '七牛云' },
+          tiktok: { color: 'magenta', text: 'TikTok' },
+          external: { color: 'gold', text: '外链' },
           cdn: { color: 'blue', text: 'CDN' },
-          tiktok: { color: 'purple', text: 'TikTok' },
         }
         const item = map[v]
         return item ? <Tag color={item.color}>{item.text}</Tag> : v || '-'
@@ -106,12 +111,24 @@ export default function Episodes() {
       label: '播放源',
       type: 'select' as const,
       span: 12,
+      placeholder: '上传视频后自动填充，也可手动选择',
       options: [
-        { label: 'CDN', value: 'cdn' },
+        { label: '本地存储', value: 'local' },
+        { label: '阿里云 OSS', value: 'oss' },
+        { label: '火山引擎 TOS', value: 'tos' },
+        { label: '七牛云 Kodo', value: 'qiniu' },
         { label: 'TikTok', value: 'tiktok' },
+        { label: '外链（手动填写）', value: 'external' },
+        { label: 'CDN（兼容旧数据）', value: 'cdn' },
       ],
     },
-    { name: 'play_url', label: '视频文件', type: 'video' as const, span: 24 },
+    {
+      name: 'play_url',
+      label: '视频文件',
+      type: 'video' as const,
+      span: 24,
+      linkSourceField: 'play_source',
+    },
     { name: 'tiktok_video_id', label: 'TikTok视频ID', type: 'text' as const, span: 12 },
     { name: 'is_free', label: '是否免费', type: 'switch' as const, span: 12 },
   ]

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
-import { Modal, Form, Input, InputNumber, Switch, Select, DatePicker, Upload, message, Button } from 'antd'
-import { PlusOutlined } from '@ant-design/icons'
+import { Modal, Form, Input, InputNumber, Switch, Select, DatePicker, Upload, message, Button, Space, Tag } from 'antd'
+import { PlusOutlined, LinkOutlined, DeleteOutlined } from '@ant-design/icons'
 import type { FieldConfig } from './types'
 import type { UploadFile, UploadProps } from 'antd'
 import dayjs from 'dayjs'
@@ -116,7 +116,12 @@ export default function CRUDModal({
         control = <ImageUploadField />
         break
       case 'video':
-        control = <VideoUploadField />
+        control = (
+          <VideoUploadField
+            linkSourceField={field.linkSourceField}
+            allowManualUrl={field.allowManualUrl !== false}
+          />
+        )
         break
       default:
         control = (
@@ -238,50 +243,150 @@ function ImageUploadField({ value, onChange }: { value?: string; onChange?: (v?:
   )
 }
 
+// 将相对 URL（如 /uploads/...）解析为浏览器可访问的绝对 URL，用于预览
+function resolvePreviewUrl(url: string): string {
+  if (!url) return ''
+  if (/^https?:\/\//i.test(url) || /^data:/i.test(url)) return url
+  return url
+}
+
+// 格式化文件大小
+function formatBytes(n: number): string {
+  if (!n) return '0 B'
+  const u = ['B', 'KB', 'MB', 'GB']
+  let i = 0
+  let v = n
+  while (v >= 1024 && i < u.length - 1) {
+    v /= 1024
+    i++
+  }
+  return `${v.toFixed(i === 0 ? 0 : 1)} ${u[i]}`
+}
+
 // VideoUploadField 视频上传字段，Form value 为视频 URL 字符串
-function VideoUploadField({ value, onChange }: { value?: string; onChange?: (v?: string) => void }) {
+// - 真实上传进度（onUploadProgress）
+// - 支持手动填写外链 URL（allowManualUrl）
+// - 上传成功后可选自动联动 play_source 字段（linkSourceField）
+function VideoUploadField({
+  value,
+  onChange,
+  linkSourceField,
+  allowManualUrl = true,
+}: {
+  value?: string
+  onChange?: (v?: string) => void
+  linkSourceField?: string
+  allowManualUrl?: boolean
+}) {
+  const form = Form.useFormInstance()
+  // 监听联动的播放源字段，用于在编辑场景下回显 engine 标签
+  const watchedSource = Form.useWatch(linkSourceField, form) as string | undefined
   const [uploading, setUploading] = useState(false)
   const [progress, setProgress] = useState(0)
+  const [engine, setEngine] = useState<string>('')
+  const [size, setSize] = useState<number>(0)
+  const [manualMode, setManualMode] = useState(false)
+  const [manualUrl, setManualUrl] = useState('')
+
+  // 编辑回显时，同步 engine 标签
+  useEffect(() => {
+    if (watchedSource && !engine) {
+      setEngine(watchedSource)
+    }
+  }, [watchedSource, engine])
 
   const uploadProps: UploadProps = {
     accept: 'video/mp4,video/quicktime,.mp4,.m3u8,.ts,.mov,.m4v',
     maxCount: 1,
     showUploadList: false,
     disabled: uploading,
+    beforeUpload: (file) => {
+      // 客户端大小校验，与后端一致：500MB
+      const limit = 500 * 1024 * 1024
+      if (file.size > limit) {
+        message.error(`视频大小不能超过 500MB（当前 ${formatBytes(file.size)}）`)
+        return Upload.LIST_IGNORE
+      }
+      return true
+    },
     customRequest: async (options) => {
       const { file, onSuccess, onError } = options
       setUploading(true)
       setProgress(0)
-      // 模拟进度（axios 不易拿到真实进度，这里用定时器推进到 90%）
-      const timer = setInterval(() => {
-        setProgress((p) => (p >= 90 ? p : p + 5))
-      }, 1000)
       try {
-        const res: any = await uploadApi.video(file as File)
+        const res: any = await uploadApi.video(file as File, (p) => setProgress(p))
         const url = res?.url || res?.path
-        if (!url) throw new Error('上传返回数据异常')
+        const eng = res?.engine || 'local'
+        if (!url) throw new Error('上传返回数据异常：未拿到 URL')
         onChange?.(url)
+        setEngine(eng)
+        setSize(Number(res?.size) || (file as File).size || 0)
+        // 自动联动播放源字段
+        if (linkSourceField) {
+          form.setFieldValue(linkSourceField, eng)
+        }
         onSuccess?.({}, file)
-        message.success('视频上传成功')
+        message.success(`视频上传成功（${eng}）`)
       } catch (e: any) {
         onError?.(e)
         message.error(e.message || '视频上传失败')
       } finally {
-        clearInterval(timer)
-        setProgress(100)
         setUploading(false)
-        setTimeout(() => setProgress(0), 1000)
+        setTimeout(() => setProgress(0), 800)
       }
     },
   }
 
+  const applyManualUrl = () => {
+    const u = manualUrl.trim()
+    if (!u) {
+      message.warning('请输入视频 URL')
+      return
+    }
+    onChange?.(u)
+    setEngine('external')
+    setSize(0)
+    if (linkSourceField) {
+      form.setFieldValue(linkSourceField, 'external')
+    }
+    setManualMode(false)
+    setManualUrl('')
+    message.success('已设置外链地址')
+  }
+
+  const clearValue = () => {
+    onChange?.(undefined)
+    setEngine('')
+    setSize(0)
+    if (linkSourceField) {
+      form.setFieldValue(linkSourceField, undefined)
+    }
+  }
+
   return (
     <div>
-      <Upload {...uploadProps}>
-        <Button icon={<PlusOutlined />} loading={uploading} disabled={uploading}>
-          {uploading ? `上传中 ${progress}%` : '上传视频'}
-        </Button>
-      </Upload>
+      <Space wrap>
+        <Upload {...uploadProps}>
+          <Button icon={<PlusOutlined />} loading={uploading} disabled={uploading}>
+            {uploading ? `上传中 ${progress}%` : '上传视频'}
+          </Button>
+        </Upload>
+        {allowManualUrl && !uploading && (
+          <Button
+            icon={<LinkOutlined />}
+            onClick={() => setManualMode((v) => !v)}
+            type={manualMode ? 'primary' : 'default'}
+          >
+            填写外链
+          </Button>
+        )}
+        {value && !uploading && (
+          <Button icon={<DeleteOutlined />} onClick={clearValue} danger>
+            清除
+          </Button>
+        )}
+      </Space>
+
       {uploading && progress > 0 && (
         <div style={{ marginTop: 8, maxWidth: 400 }}>
           <div style={{ background: '#f0f0f0', borderRadius: 4, height: 6, overflow: 'hidden' }}>
@@ -290,21 +395,43 @@ function VideoUploadField({ value, onChange }: { value?: string; onChange?: (v?:
                 background: '#1890ff',
                 height: '100%',
                 width: `${progress}%`,
-                transition: 'width 0.3s',
+                transition: 'width 0.2s',
               }}
             />
           </div>
+          <div style={{ marginTop: 4, fontSize: 12, color: '#999' }}>上传进度 {progress}%</div>
         </div>
       )}
+
+      {manualMode && !uploading && (
+        <div style={{ marginTop: 8 }}>
+          <Space.Compact style={{ width: '100%' }}>
+            <Input
+              placeholder="粘贴视频外链 URL，如 https://cdn.example.com/ep1.mp4"
+              value={manualUrl}
+              onChange={(e) => setManualUrl(e.target.value)}
+              onPressEnter={applyManualUrl}
+            />
+            <Button type="primary" onClick={applyManualUrl}>
+              确定
+            </Button>
+          </Space.Compact>
+        </div>
+      )}
+
       {value && !uploading && (
         <div style={{ marginTop: 8 }}>
           <video
-            src={value}
+            src={resolvePreviewUrl(value)}
             controls
             style={{ maxWidth: '100%', maxHeight: 240, borderRadius: 4, background: '#000' }}
           />
-          <div style={{ marginTop: 4, fontSize: 12, color: '#999', wordBreak: 'break-all' }}>
-            {value}
+          <div style={{ marginTop: 4, display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+            {engine && <Tag color="blue">{engine}</Tag>}
+            {size > 0 && <span style={{ fontSize: 12, color: '#999' }}>{formatBytes(size)}</span>}
+            <span style={{ fontSize: 12, color: '#999', wordBreak: 'break-all', flex: 1, minWidth: 100 }}>
+              {value}
+            </span>
           </div>
         </div>
       )}

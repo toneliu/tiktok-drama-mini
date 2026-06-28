@@ -1,7 +1,7 @@
 import axios, { AxiosInstance, AxiosRequestConfig } from 'axios';
 
-// API配置
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api/v1';
+// API配置：默认走相对路径 /api/v1，由 nginx（生产）或 vite proxy（开发）转发到后端
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api/v1';
 
 // 创建axios实例
 const apiClient: AxiosInstance = axios.create({

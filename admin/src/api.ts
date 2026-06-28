@@ -78,12 +78,22 @@ export const uploadApi = {
     })
   },
   // 上传视频，返回 {url, path, engine, size}
-  video: (file: File) => {
+  // onUploadProgress 用于真实进度回调
+  video: (file: File, onUploadProgress?: (percent: number) => void) => {
     const formData = new FormData()
     formData.append('file', file)
     return request.post('/upload/video', formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
       timeout: 600000, // 10 分钟，视频上传较慢
+      maxContentLength: Infinity,
+      maxBodyLength: Infinity,
+      onUploadProgress: onUploadProgress
+        ? (e: any) => {
+            if (e.total) {
+              onUploadProgress(Math.round((e.loaded * 100) / e.total))
+            }
+          }
+        : undefined,
     })
   },
 }
