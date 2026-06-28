@@ -96,8 +96,97 @@ func registerRoutes(r *gin.Engine) {
 		}
 	}
 
+	// 管理后台路由
+	registerAdminRoutes(r)
+
 	// 健康检查
 	r.GET("/health", func(c *gin.Context) {
 		c.JSON(200, gin.H{"status": "ok"})
 	})
+}
+
+// registerAdminRoutes 注册管理后台 API 路由
+func registerAdminRoutes(r *gin.Engine) {
+	adminHandler := &handlers.AdminHandler{}
+	admin := r.Group("/api/admin")
+	{
+		admin.POST("/login", adminHandler.Login)
+		admin.Use(middleware.AdminAuth()) // JWT auth middleware for admin
+		admin.GET("/profile", adminHandler.GetProfile)
+		admin.POST("/logout", adminHandler.Logout)
+		admin.GET("/dashboard/stats", adminHandler.GetStats)
+
+		// Dramas
+		admin.GET("/dramas", adminHandler.ListDramas)
+		admin.GET("/dramas/all", adminHandler.ListAllDramas)
+		admin.POST("/dramas", adminHandler.CreateDrama)
+		admin.PUT("/dramas/:id", adminHandler.UpdateDrama)
+		admin.DELETE("/dramas/:id", adminHandler.DeleteDrama)
+
+		// Episodes
+		admin.GET("/episodes", adminHandler.ListEpisodes)
+		admin.POST("/episodes", adminHandler.CreateEpisode)
+		admin.PUT("/episodes/:id", adminHandler.UpdateEpisode)
+		admin.DELETE("/episodes/:id", adminHandler.DeleteEpisode)
+
+		// Users
+		admin.GET("/users", adminHandler.ListUsers)
+		admin.PUT("/users/:id", adminHandler.UpdateUser)
+		admin.PUT("/users/:id/vip", adminHandler.SetUserVIP)
+
+		// Banners
+		admin.GET("/banners", adminHandler.ListBanners)
+		admin.POST("/banners", adminHandler.CreateBanner)
+		admin.PUT("/banners/:id", adminHandler.UpdateBanner)
+		admin.DELETE("/banners/:id", adminHandler.DeleteBanner)
+
+		// Feedback
+		admin.GET("/feedback", adminHandler.ListFeedback)
+		admin.DELETE("/feedback/:id", adminHandler.DeleteFeedback)
+
+		// Recharge Plans
+		admin.GET("/recharge-plans", adminHandler.ListRechargePlans)
+		admin.POST("/recharge-plans", adminHandler.CreateRechargePlan)
+		admin.PUT("/recharge-plans/:id", adminHandler.UpdateRechargePlan)
+		admin.DELETE("/recharge-plans/:id", adminHandler.DeleteRechargePlan)
+
+		// Recharge Records
+		admin.GET("/recharge-records", adminHandler.ListRechargeRecords)
+
+		// Redeem Batches
+		admin.GET("/redeem-batches", adminHandler.ListRedeemBatches)
+		admin.POST("/redeem-batches", adminHandler.CreateRedeemBatch)
+		admin.PUT("/redeem-batches/:id", adminHandler.UpdateRedeemBatch)
+		admin.DELETE("/redeem-batches/:id", adminHandler.DeleteRedeemBatch)
+
+		// Redeem Codes
+		admin.GET("/redeem-codes", adminHandler.ListRedeemCodes)
+		admin.DELETE("/redeem-codes/:id", adminHandler.DeleteRedeemCode)
+
+		// Redeem Logs
+		admin.GET("/redeem-logs", adminHandler.ListRedeemLogs)
+
+		// Task Configs
+		admin.GET("/task-configs", adminHandler.ListTaskConfigs)
+		admin.POST("/task-configs", adminHandler.CreateTaskConfig)
+		admin.PUT("/task-configs/:id", adminHandler.UpdateTaskConfig)
+		admin.DELETE("/task-configs/:id", adminHandler.DeleteTaskConfig)
+
+		// Checkin Configs
+		admin.GET("/checkin-configs", adminHandler.ListCheckinConfigs)
+		admin.POST("/checkin-configs", adminHandler.CreateCheckinConfig)
+		admin.PUT("/checkin-configs/:id", adminHandler.UpdateCheckinConfig)
+		admin.DELETE("/checkin-configs/:id", adminHandler.DeleteCheckinConfig)
+
+		// Money Logs
+		admin.GET("/money-logs", adminHandler.ListMoneyLogs)
+
+		// Watch History
+		admin.GET("/watch-history", adminHandler.ListWatchHistory)
+
+		// Subscriptions
+		admin.GET("/subscriptions", adminHandler.ListSubscriptions)
+		admin.GET("/subscription-plans", adminHandler.ListSubscriptionPlans)
+		admin.PUT("/subscription-plans/:id", adminHandler.UpdateSubscriptionPlan)
+	}
 }

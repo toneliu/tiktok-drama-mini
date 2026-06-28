@@ -1,4 +1,4 @@
-# Build stage
+# Build stage - user frontend
 FROM node:20-alpine AS builder
 
 WORKDIR /app
@@ -9,10 +9,24 @@ RUN npm ci
 COPY . .
 RUN npm run build
 
+# Build stage - admin frontend
+FROM node:20-alpine AS admin-builder
+
+WORKDIR /app
+
+COPY admin/package.json admin/package-lock.json ./
+RUN npm ci
+
+COPY admin/ ./
+RUN npm run build
+
 # Serve stage
 FROM nginx:alpine
 
+# User frontend at site root
 COPY --from=builder /app/dist /usr/share/nginx/html
+# Admin panel at /admin/
+COPY --from=admin-builder /app/dist /usr/share/nginx/html/admin
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 
 EXPOSE 80

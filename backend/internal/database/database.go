@@ -11,6 +11,7 @@ import (
 	"github.com/dramamax/backend/internal/config"
 	"github.com/dramamax/backend/internal/models"
 	"github.com/google/uuid"
+	"golang.org/x/crypto/bcrypt"
 	"gorm.io/driver/mysql"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
@@ -104,11 +105,96 @@ func initSQLite(cfg *config.Config) error {
 }
 
 func autoMigrate() error {
-	return DB.AutoMigrate(
+	if err := DB.AutoMigrate(
 		&models.User{}, &models.Drama{}, &models.Episode{},
 		&models.SubscriptionPlan{}, &models.Subscription{},
 		&models.PaymentOrder{}, &models.WatchHistory{},
-	)
+		&models.Admin{}, &models.Banner{}, &models.Feedback{},
+		&models.RechargePlan{}, &models.RechargeRecord{},
+		&models.RedeemBatch{}, &models.RedeemCode{}, &models.RedeemLog{},
+		&models.TaskConfig{}, &models.CheckinConfig{}, &models.MoneyLog{},
+	); err != nil {
+		return err
+	}
+	return seed()
+}
+
+// seed 在表为空时写入默认数据（管理员、轮播图、签到配置等）
+func seed() error {
+	// 默认管理员
+	var adminCount int64
+	if err := DB.Model(&models.Admin{}).Count(&adminCount).Error; err != nil {
+		log.Printf("[WARN] seed admin count failed: %v", err)
+	} else if adminCount == 0 {
+		hashed, err := bcrypt.GenerateFromPassword([]byte("admin123"), bcrypt.DefaultCost)
+		if err != nil {
+			log.Printf("[WARN] seed bcrypt failed: %v", err)
+		} else {
+			admin := models.Admin{
+				Username: "admin",
+				Password: string(hashed),
+				Nickname: "Super Admin",
+				Role:     "superadmin",
+				Status:   "normal",
+			}
+			if err := DB.Create(&admin).Error; err != nil {
+				log.Printf("[WARN] seed admin create failed: %v", err)
+			} else {
+				log.Println("[OK] Default admin created (username: admin, password: admin123)")
+			}
+		}
+	}
+
+	// 默认轮播图
+	var bannerCount int64
+	if err := DB.Model(&models.Banner{}).Count(&bannerCount).Error; err == nil && bannerCount == 0 {
+		banners := []models.Banner{
+			{Title: "Welcome Banner", Img: "https://via.placeholder.com/750x300/ff6b6b/ffffff?text=Welcome", Path: "/pages/index/index", Type: "drama", Area: "home", Status: "normal", Weigh: 100},
+			{Title: "Hot Dramas", Img: "https://via.placeholder.com/750x300/4ecdc4/ffffff?text=Hot+Dramas", Path: "/pages/index/index", Type: "drama", Area: "home", Status: "normal", Weigh: 90},
+		}
+		DB.Create(&banners)
+	}
+
+	// 默认充值配置
+	var rechargePlanCount int64
+	if err := DB.Model(&models.RechargePlan{}).Count(&rechargePlanCount).Error; err == nil && rechargePlanCount == 0 {
+		plans := []models.RechargePlan{
+			{RechargeType: "coins", OriginalPrice: 0.99, CurrentPrice: 0.99, Amount: 60, BonusGold: 0, Status: "normal", IOSID: "coins_60", GoogleID: "coins_60"},
+			{RechargeType: "coins", OriginalPrice: 4.99, CurrentPrice: 4.99, Amount: 300, BonusGold: 30, Status: "normal", IOSID: "coins_300", GoogleID: "coins_300"},
+			{RechargeType: "vip", OriginalPrice: 9.99, CurrentPrice: 9.99, Amount: 30, BonusGold: 0, Status: "normal", IOSID: "vip_month", GoogleID: "vip_month"},
+		}
+		DB.Create(&plans)
+	}
+
+	// 默认签到配置
+	var checkinCount int64
+	if err := DB.Model(&models.CheckinConfig{}).Count(&checkinCount).Error; err == nil && checkinCount == 0 {
+		checkins := make([]models.CheckinConfig, 7)
+		for i := 0; i < 7; i++ {
+			checkins[i] = models.CheckinConfig{
+				Day:          i + 1,
+				RewardAmount: 10 + i*5,
+				RewardType:   "coins",
+				RewardDesc:   fmt.Sprintf("Day %d reward", i+1),
+				IsEnabled:    true,
+				Weigh:        i + 1,
+			}
+		}
+		DB.Create(&checkins)
+	}
+
+	// 默认任务配置
+	var taskCount int64
+	if err := DB.Model(&models.TaskConfig{}).Count(&taskCount).Error; err == nil && taskCount == 0 {
+		tasks := []models.TaskConfig{
+			{Title: "Daily Check-in", Type: "daily", TaskKey: "daily_checkin", RewardType: "coins", RewardAmount: 10, MaxTimes: 1, Status: "normal", OpLink: "/pages/checkin/checkin", Weigh: 100},
+			{Title: "Watch Episode", Type: "daily", TaskKey: "watch_episode", RewardType: "coins", RewardAmount: 5, MaxTimes: 3, Status: "normal", OpLink: "/pages/index/index", Weigh: 90},
+			{Title: "Share Drama", Type: "daily", TaskKey: "share_drama", RewardType: "coins", RewardAmount: 20, MaxTimes: 1, Status: "normal", OpLink: "/pages/index/index", Weigh: 80},
+		}
+		DB.Create(&tasks)
+	}
+
+	return nil
 }
 
 // MockDramas 返回演示用剧集

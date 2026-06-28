@@ -17,8 +17,8 @@ type User struct {
 	Country     string         `json:"country" gorm:"size:64"`
 	Province    string         `json:"province" gorm:"size:64"`
 	City        string         `json:"city" gorm:"size:64"`
-	IsVIP       bool           `json:"is_vip" gorm:"default:false"`
-	VIPExpireAt *time.Time     `json:"vip_expire_at"`
+	IsVIP       bool           `json:"is_vip" gorm:"column:is_vip;default:false"`
+	VIPExpireAt *time.Time     `json:"vip_expire_at" gorm:"column:vip_expire_at"`
 	CreatedAt   time.Time      `json:"created_at"`
 	UpdatedAt   time.Time      `json:"updated_at"`
 	DeletedAt   gorm.DeletedAt `json:"-" gorm:"index"`
@@ -70,7 +70,7 @@ type Episode struct {
 	Duration      int            `json:"duration"` // 秒
 	// 播放源配置
 	PlayURL       string         `json:"play_url" gorm:"size:512"`      // 自有CDN/服务器URL
-	TikTokVideoID string         `json:"tiktok_video_id" gorm:"size:128"` // TikTok视频ID
+	TikTokVideoID string         `json:"tiktok_video_id" gorm:"column:tiktok_video_id;size:128"` // TikTok视频ID
 	PlaySource    string         `json:"play_source" gorm:"size:32"`    // "cdn" | "tiktok"
 	IsFree        bool           `json:"is_free" gorm:"default:false"`
 	ViewCount     int64          `json:"view_count" gorm:"default:0"`
@@ -173,4 +173,182 @@ func (w *WatchHistory) BeforeCreate(tx *gorm.DB) error {
 		w.ID = uuid.New()
 	}
 	return nil
+}
+
+// Admin 管理员
+type Admin struct {
+	ID        uint           `json:"id" gorm:"primaryKey;autoIncrement"`
+	Username  string         `json:"username" gorm:"size:64;uniqueIndex;not null"`
+	Password  string         `json:"-" gorm:"size:256;not null"`
+	Nickname  string         `json:"nickname" gorm:"size:64"`
+	Avatar    string         `json:"avatar" gorm:"size:512"`
+	Role      string         `json:"role" gorm:"size:32;default:admin"`           // superadmin, admin
+	Status    string         `json:"status" gorm:"size:16;default:normal"`        // normal, hidden
+	Logintime *time.Time     `json:"logintime"`
+	Loginip   string         `json:"loginip" gorm:"size:64"`
+	CreatedAt time.Time      `json:"created_at"`
+	UpdatedAt time.Time      `json:"updated_at"`
+	DeletedAt gorm.DeletedAt `json:"-" gorm:"index"`
+}
+
+// Banner 轮播图
+type Banner struct {
+	ID        uint           `json:"id" gorm:"primaryKey;autoIncrement"`
+	Title     string         `json:"title" gorm:"size:256"`
+	Img       string         `json:"img" gorm:"size:512"`
+	Path      string         `json:"path" gorm:"size:512"`                        // link URL
+	Type      string         `json:"type" gorm:"size:32"`                         // drama, external, etc
+	Area      string         `json:"area" gorm:"size:32"`                         // home, detail, etc
+	Status    string         `json:"status" gorm:"size:16;default:normal"`        // normal, hidden
+	PageType  string         `json:"page_type" gorm:"size:32"`
+	Weigh     int            `json:"weigh" gorm:"default:0"`
+	CreatedAt time.Time      `json:"created_at"`
+	UpdatedAt time.Time      `json:"updated_at"`
+	DeletedAt gorm.DeletedAt `json:"-" gorm:"index"`
+}
+
+// Feedback 意见反馈
+type Feedback struct {
+	ID          uint           `json:"id" gorm:"primaryKey;autoIncrement"`
+	UserID      uuid.UUID      `json:"user_id" gorm:"type:char(36);index"`
+	ContactInfo string         `json:"contact_info" gorm:"size:256"`
+	Content     string         `json:"content" gorm:"type:text"`
+	CreatedAt   time.Time      `json:"created_at"`
+	UpdatedAt   time.Time      `json:"updated_at"`
+	DeletedAt   gorm.DeletedAt `json:"-" gorm:"index"`
+}
+
+// RechargePlan 充值配置
+type RechargePlan struct {
+	ID            uint           `json:"id" gorm:"primaryKey;autoIncrement"`
+	RechargeType  string         `json:"recharge_type" gorm:"size:32"`            // vip, coins
+	OriginalPrice float64        `json:"original_price"`
+	CurrentPrice  float64        `json:"current_price"`
+	Amount        int            `json:"amount"`                                  // coins or vip days
+	BonusGold     int            `json:"bonus_gold" gorm:"default:0"`
+	Status        string         `json:"status" gorm:"size:16;default:normal"`     // normal, hidden
+	GoogleID      string         `json:"google_id" gorm:"size:128"`
+	IOSID         string         `json:"ios_id" gorm:"size:128"`
+	CreatedAt     time.Time      `json:"created_at"`
+	UpdatedAt     time.Time      `json:"updated_at"`
+	DeletedAt     gorm.DeletedAt `json:"-" gorm:"index"`
+}
+
+// RechargeRecord 用户充值记录
+type RechargeRecord struct {
+	ID              uint           `json:"id" gorm:"primaryKey;autoIncrement"`
+	OutTradeNo      string         `json:"out_trade_no" gorm:"size:128;uniqueIndex"`
+	UserID          uuid.UUID      `json:"user_id" gorm:"type:char(36);index"`
+	RechargePlanID  uint           `json:"recharge_plan_id"`
+	Status          string         `json:"status" gorm:"size:32"`                   // pending, paid, failed, refunded
+	RechargeType    string         `json:"recharge_type" gorm:"size:32"`
+	OriginalPrice   float64        `json:"original_price"`
+	CurrentPrice    float64        `json:"current_price"`
+	Amount          int            `json:"amount"`
+	BonusGold       int            `json:"bonus_gold"`
+	PaymentMethod   string         `json:"payment_method" gorm:"size:32"`
+	TransactionID   string         `json:"transaction_id" gorm:"size:256"`
+	PayTime         *time.Time     `json:"pay_time"`
+	CreatedAt       time.Time      `json:"created_at"`
+	UpdatedAt       time.Time      `json:"updated_at"`
+	DeletedAt       gorm.DeletedAt `json:"-" gorm:"index"`
+}
+
+// RedeemBatch 兑换码批次
+type RedeemBatch struct {
+	ID              uint           `json:"id" gorm:"primaryKey;autoIncrement"`
+	BatchName       string         `json:"batch_name" gorm:"size:128"`
+	BatchNo         string         `json:"batch_no" gorm:"size:64;uniqueIndex"`
+	Type            string         `json:"type" gorm:"size:32"`                     // coins, vip
+	Value           int            `json:"value"`                                  // coins amount or vip days
+	TotalCount      int            `json:"total_count"`
+	UsedCount       int            `json:"used_count" gorm:"default:0"`
+	ValidStartTime  time.Time      `json:"valid_start_time"`
+	ValidEndTime    time.Time      `json:"valid_end_time"`
+	Status          string         `json:"status" gorm:"size:16;default:normal"`
+	CreatedAt       time.Time      `json:"created_at"`
+	UpdatedAt       time.Time      `json:"updated_at"`
+	DeletedAt       gorm.DeletedAt `json:"-" gorm:"index"`
+}
+
+// RedeemCode 兑换码
+type RedeemCode struct {
+	ID              uint           `json:"id" gorm:"primaryKey;autoIncrement"`
+	Code            string         `json:"code" gorm:"size:64;uniqueIndex"`
+	BatchID         uint           `json:"batch_id" gorm:"index"`
+	Type            string         `json:"type" gorm:"size:32"`                     // coins, vip
+	Value           int            `json:"value"`
+	Status          string         `json:"status" gorm:"size:16;default:unused"`   // unused, used, expired
+	UserID          *uuid.UUID     `json:"user_id" gorm:"type:char(36)"`
+	UsedTime        *time.Time     `json:"used_time"`
+	UsedCount       int            `json:"used_count" gorm:"default:0"`
+	UseLimit        int            `json:"use_limit" gorm:"default:1"`
+	ValidStartTime  time.Time      `json:"valid_start_time"`
+	ValidEndTime    time.Time      `json:"valid_end_time"`
+	CreatedAt       time.Time      `json:"created_at"`
+	UpdatedAt       time.Time      `json:"updated_at"`
+	DeletedAt       gorm.DeletedAt `json:"-" gorm:"index"`
+}
+
+// RedeemLog 兑换记录
+type RedeemLog struct {
+	ID            uint           `json:"id" gorm:"primaryKey;autoIncrement"`
+	Code          string         `json:"code" gorm:"size:64"`
+	BatchID       uint           `json:"batch_id"`
+	UserID        uuid.UUID      `json:"user_id" gorm:"type:char(36);index"`
+	Type          string         `json:"type" gorm:"size:32"`
+	Value         int            `json:"value"`
+	Coins         int            `json:"coins"`
+	VipDays       int            `json:"vip_days"`
+	BeforeBalance int            `json:"before_balance"`
+	AfterBalance  int            `json:"after_balance"`
+	IP            string         `json:"ip" gorm:"size:64"`
+	DeviceType    string         `json:"device_type" gorm:"size:32"`
+	CreatedAt     time.Time      `json:"created_at"`
+	DeletedAt     gorm.DeletedAt `json:"-" gorm:"index"`
+}
+
+// TaskConfig 任务配置
+type TaskConfig struct {
+	ID           uint           `json:"id" gorm:"primaryKey;autoIncrement"`
+	Image        string         `json:"image" gorm:"size:512"`
+	Title        string         `json:"title" gorm:"size:128"`
+	Type         string         `json:"type" gorm:"size:32"`                      // daily, one_time
+	TaskKey      string         `json:"task_key" gorm:"size:64"`
+	RewardType   string         `json:"reward_type" gorm:"size:32"`               // coins, vip
+	RewardAmount int            `json:"reward_amount"`
+	MaxTimes     int            `json:"max_times" gorm:"default:1"`
+	Status       string         `json:"status" gorm:"size:16;default:normal"`
+	OpLink       string         `json:"op_link" gorm:"size:512"`
+	Weigh        int            `json:"weigh" gorm:"default:0"`
+	CreatedAt    time.Time      `json:"created_at"`
+	UpdatedAt    time.Time      `json:"updated_at"`
+	DeletedAt    gorm.DeletedAt `json:"-" gorm:"index"`
+}
+
+// CheckinConfig 签到配置
+type CheckinConfig struct {
+	ID           uint           `json:"id" gorm:"primaryKey;autoIncrement"`
+	Day          int            `json:"day"`                                     // 1-7
+	RewardAmount int            `json:"reward_amount"`
+	RewardType   string         `json:"reward_type" gorm:"size:32"`               // coins, vip
+	RewardDesc   string         `json:"reward_desc" gorm:"size:256"`
+	IsEnabled    bool           `json:"is_enabled" gorm:"default:true"`
+	Weigh        int            `json:"weigh" gorm:"default:0"`
+	CreatedAt    time.Time      `json:"created_at"`
+	UpdatedAt    time.Time      `json:"updated_at"`
+	DeletedAt    gorm.DeletedAt `json:"-" gorm:"index"`
+}
+
+// MoneyLog 金币变动记录
+type MoneyLog struct {
+	ID        uint           `json:"id" gorm:"primaryKey;autoIncrement"`
+	UserID    uuid.UUID      `json:"user_id" gorm:"type:char(36);index"`
+	Type      string         `json:"type" gorm:"size:32"`                       // recharge, spend, reward, redeem
+	Amount    int            `json:"amount"`                                   // positive=add, negative=subtract
+	Before    int            `json:"before"`
+	After     int            `json:"after"`
+	Remark    string         `json:"remark" gorm:"size:256"`
+	CreatedAt time.Time      `json:"created_at"`
+	DeletedAt gorm.DeletedAt `json:"-" gorm:"index"`
 }
