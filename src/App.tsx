@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 
 // Pages
 import Login from '@/pages/Login';
@@ -13,6 +13,7 @@ import MyList from '@/pages/MyList';
 // Bottom Navigation Component
 const BottomNav: React.FC = () => {
   const location = useLocation();
+  const navigate = useNavigate();
   const currentPath = location.pathname;
 
   const navItems = [
@@ -35,7 +36,7 @@ const BottomNav: React.FC = () => {
             className={`nav-item ${isActive ? 'active' : ''}`}
             onClick={(e) => {
               e.preventDefault();
-              window.location.href = item.path;
+              navigate(item.path);
             }}
           >
             <item.icon active={isActive} />
