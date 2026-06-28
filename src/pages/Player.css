@@ -32,11 +32,43 @@
   }
 }
 
-/* Video Wrapper */
-.video-wrapper {
+/* ===================== 垂直滑动 Feed（抖音风格） ===================== */
+.player-feed {
+  width: 100%;
+  height: 100vh;
+  overflow-y: scroll;
+  overflow-x: hidden;
+  scroll-snap-type: y mandatory;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.player-feed::-webkit-scrollbar {
+  display: none;
+}
+
+/* 单个视频卡片：占满一屏，snap 对齐 */
+.video-slide {
   position: relative;
   width: 100%;
-  height: 100%;
+  height: 100vh;
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
+  overflow: hidden;
+  background: #000;
+}
+
+/* 视频显示区域 */
+.slide-video-area {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .video-player {
@@ -45,7 +77,289 @@
   object-fit: contain;
 }
 
-/* TikTok Embed */
+/* 中央播放/暂停按钮 */
+.slide-center-btn {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.45);
+  color: #fff;
+  font-size: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  backdrop-filter: blur(8px);
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* ===================== 顶部栏 ===================== */
+.slide-top-bar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  padding: 14px 16px;
+  padding-top: calc(14px + env(safe-area-inset-top));
+  background: linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, 0.6) 0%,
+    transparent 100%
+  );
+  z-index: 5;
+  pointer-events: none;
+}
+
+.slide-top-bar > * {
+  pointer-events: auto;
+}
+
+.icon-btn {
+  width: 38px;
+  height: 38px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.35);
+  color: white;
+  font-size: 20px;
+  cursor: pointer;
+  margin-right: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.slide-top-title {
+  flex: 1;
+  min-width: 0;
+}
+
+.slide-top-title h3 {
+  font-size: 16px;
+  font-weight: 700;
+  color: #fff;
+  margin-bottom: 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.slide-top-title p {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.8);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ===================== 右侧操作栏（抖音风格） ===================== */
+.slide-side-actions {
+  position: absolute;
+  right: 10px;
+  bottom: 130px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  align-items: center;
+  z-index: 5;
+}
+
+.side-action {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+}
+
+.side-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  transition: transform 0.15s ease;
+}
+
+.side-action:active .side-icon {
+  transform: scale(0.88);
+}
+
+.side-label {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.9);
+  font-weight: 500;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+/* ===================== 底部信息 + 进度条 ===================== */
+.slide-bottom-bar {
+  position: absolute;
+  left: 16px;
+  right: 76px;
+  bottom: 24px;
+  bottom: calc(24px + env(safe-area-inset-bottom));
+  z-index: 5;
+  pointer-events: none;
+}
+
+.slide-bottom-bar > * {
+  pointer-events: auto;
+}
+
+.slide-bottom-title {
+  margin-bottom: 10px;
+}
+
+.slide-bottom-title h3 {
+  font-size: 15px;
+  font-weight: 700;
+  color: #fff;
+  margin-bottom: 4px;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
+}
+
+.slide-bottom-title p {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.85);
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
+}
+
+.slide-progress {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.slide-progress .time {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.9);
+  min-width: 36px;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+}
+
+.progress-slider {
+  flex: 1;
+  height: 4px;
+  -webkit-appearance: none;
+  appearance: none;
+  border-radius: 2px;
+  cursor: pointer;
+  outline: none;
+}
+
+.progress-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #fe2c55;
+  cursor: pointer;
+  box-shadow: 0 0 4px rgba(0, 0, 0, 0.5);
+}
+
+.progress-slider::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #fe2c55;
+  cursor: pointer;
+  border: none;
+}
+
+/* ===================== 锁定状态 ===================== */
+.slide-locked {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.slide-blur-bg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-size: cover;
+  background-position: center;
+  filter: blur(24px) brightness(0.35);
+  transform: scale(1.15);
+}
+
+.slide-locked .lock-overlay {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 32px;
+  cursor: pointer;
+}
+
+.slide-locked .lock-icon {
+  font-size: 56px;
+  margin-bottom: 16px;
+}
+
+.slide-locked .lock-overlay h3 {
+  font-size: 22px;
+  font-weight: 700;
+  margin-bottom: 8px;
+  color: #fff;
+}
+
+.slide-locked .lock-overlay p {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.75);
+  margin-bottom: 22px;
+}
+
+.slide-locked .subscribe-btn {
+  padding: 12px 32px;
+  background: linear-gradient(90deg, #fe2c55, #ff6b6b);
+  border: none;
+  border-radius: 24px;
+  color: white;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.slide-locked .subscribe-btn:hover {
+  transform: scale(1.05);
+  box-shadow: 0 8px 24px rgba(254, 44, 85, 0.4);
+}
+
+/* ===================== TikTok 嵌入 ===================== */
 .tiktok-embed-wrapper {
   width: 100%;
   height: 100%;
@@ -63,237 +377,28 @@
   background: #000;
 }
 
-/* TikTok Locked State */
-.tiktok-locked-wrapper {
-  position: relative;
-  width: 100%;
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: #000;
-}
-
-.tiktok-blur-thumbnail {
-  position: absolute;
+/* ===================== 剧集列表弹窗 ===================== */
+.episode-list-modal {
+  position: fixed;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background-size: cover;
-  background-position: center;
-  filter: blur(20px) brightness(0.3);
-  transform: scale(1.1);
-}
-
-.tiktok-locked-wrapper .lock-overlay {
-  position: relative;
+  background: rgba(0, 0, 0, 0.5);
   z-index: 10;
   display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-  padding: 40px;
-  cursor: pointer;
+  align-items: flex-end;
+  animation: fadeIn 0.2s ease;
 }
 
-.tiktok-locked-wrapper .lock-icon {
-  font-size: 64px;
-  margin-bottom: 20px;
-}
-
-.tiktok-locked-wrapper .lock-overlay h3 {
-  font-size: 24px;
-  font-weight: 700;
-  margin-bottom: 8px;
-  color: #fff;
-}
-
-.tiktok-locked-wrapper .lock-overlay p {
-  font-size: 16px;
-  color: rgba(255, 255, 255, 0.7);
-  margin-bottom: 24px;
-}
-
-.tiktok-locked-wrapper .subscribe-btn {
-  padding: 14px 32px;
-  background: linear-gradient(90deg, #fe2c55, #ff6b6b);
-  border: none;
-  border-radius: 12px;
-  color: white;
-  font-size: 16px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: transform 0.2s, box-shadow 0.2s;
-}
-
-.tiktok-locked-wrapper .subscribe-btn:hover {
-  transform: scale(1.05);
-  box-shadow: 0 8px 24px rgba(254, 44, 85, 0.4);
-}
-
-.tiktok-overlay {
-  background: linear-gradient(
-    to bottom,
-    rgba(0, 0, 0, 0.7) 0%,
-    transparent 15%,
-    transparent 85%,
-    rgba(0, 0, 0, 0.5) 100%
-  );
-}
-
-/* Controls Overlay */
-.controls-overlay {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  background: linear-gradient(
-    to bottom,
-    rgba(0, 0, 0, 0.7) 0%,
-    transparent 20%,
-    transparent 80%,
-    rgba(0, 0, 0, 0.7) 100%
-  );
-  animation: fadeIn 0.3s ease;
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
-
-/* Top Controls */
-.top-controls {
-  display: flex;
-  align-items: center;
-  padding: 16px;
-  padding-top: calc(16px + env(safe-area-inset-top));
-}
-
-.back-btn {
-  width: 40px;
-  height: 40px;
-  border: none;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.2);
-  color: white;
-  font-size: 20px;
-  cursor: pointer;
-  margin-right: 12px;
-}
-
-.title-info {
-  flex: 1;
-}
-
-.title-info h3 {
-  font-size: 16px;
-  font-weight: 600;
-  margin-bottom: 2px;
-}
-
-.title-info p {
-  font-size: 13px;
-  color: rgba(255, 255, 255, 0.7);
-}
-
-/* Center Controls */
-.center-controls {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 40px;
-}
-
-.control-btn {
-  width: 50px;
-  height: 50px;
-  border: none;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.2);
-  color: white;
-  font-size: 24px;
-  cursor: pointer;
-}
-
-.play-btn-large {
-  width: 70px;
-  height: 70px;
-  border: none;
-  border-radius: 50%;
-  background: #fe2c55;
-  color: white;
-  font-size: 28px;
-  cursor: pointer;
-}
-
-/* Bottom Controls */
-.bottom-controls {
-  display: flex;
-  align-items: center;
-  padding: 16px;
-  padding-bottom: calc(16px + env(safe-area-inset-bottom));
-  gap: 12px;
-}
-
-.time {
-  font-size: 13px;
-  color: rgba(255, 255, 255, 0.8);
-  min-width: 40px;
-}
-
-.progress-bar {
-  flex: 1;
-}
-
-.progress-slider {
+.modal-inner {
   width: 100%;
-  height: 4px;
-  -webkit-appearance: none;
-  appearance: none;
-  border-radius: 2px;
-  cursor: pointer;
-}
-
-.progress-slider::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  width: 14px;
-  height: 14px;
-  border-radius: 50%;
-  background: #fe2c55;
-  cursor: pointer;
-}
-
-.episode-list-btn {
-  width: 40px;
-  height: 40px;
-  border: none;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.2);
-  font-size: 18px;
-  cursor: pointer;
-}
-
-/* Episode List Modal */
-.episode-list-modal {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  max-height: 60vh;
+  max-height: 65vh;
   background: #1a1a2e;
   border-radius: 20px 20px 0 0;
   animation: slideUp 0.3s ease;
+  display: flex;
+  flex-direction: column;
 }
 
 @keyframes slideUp {
@@ -314,8 +419,9 @@
 }
 
 .modal-header h3 {
-  font-size: 18px;
+  font-size: 17px;
   font-weight: 600;
+  color: #fff;
 }
 
 .modal-header button {
@@ -325,12 +431,12 @@
   border-radius: 50%;
   background: rgba(255, 255, 255, 0.1);
   color: white;
-  font-size: 16px;
+  font-size: 15px;
   cursor: pointer;
 }
 
 .modal-content {
-  max-height: calc(60vh - 60px);
+  flex: 1;
   overflow-y: auto;
   padding: 8px 0;
 }
@@ -338,7 +444,7 @@
 .episode-item {
   display: flex;
   align-items: center;
-  padding: 12px 20px;
+  padding: 14px 20px;
   cursor: pointer;
   transition: background 0.2s;
 }
@@ -348,28 +454,42 @@
 }
 
 .episode-item.active {
-  background: rgba(254, 44, 85, 0.1);
+  background: rgba(254, 44, 85, 0.12);
 }
 
 .episode-num {
-  width: 60px;
-  font-size: 14px;
-  font-weight: 600;
-  color: rgba(255, 255, 255, 0.6);
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.08);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.85);
+  margin-right: 14px;
+  flex-shrink: 0;
 }
 
 .episode-item.active .episode-num {
-  color: #fe2c55;
+  background: #fe2c55;
+  color: #fff;
 }
 
 .episode-info {
   flex: 1;
+  min-width: 0;
 }
 
 .episode-info h4 {
   font-size: 14px;
   font-weight: 500;
-  margin-bottom: 2px;
+  margin-bottom: 3px;
+  color: #fff;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .episode-info span {
@@ -380,4 +500,6 @@
 .playing-indicator {
   font-size: 12px;
   color: #fe2c55;
+  font-weight: 600;
+  flex-shrink: 0;
 }

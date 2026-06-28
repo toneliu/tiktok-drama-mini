@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { api } from '@/utils/api';
 import { useUserStore, usePlayStore } from '@/store';
@@ -19,125 +19,133 @@ const Player: React.FC = () => {
   const { episodeId } = useParams<{ episodeId: string }>();
   const navigate = useNavigate();
   const { isVip } = useUserStore();
-  const { currentDrama, currentEpisode, setCurrentEpisode, setProgress } = usePlayStore();
-  
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [currentTime, setCurrentTime] = useState(0);
-  const [duration, setDuration] = useState(0);
-  const [showControls, setShowControls] = useState(true);
-  const [episodeList, setEpisodeList] = useState<Episode[]>([]);
-  const [showEpisodeList, setShowEpisodeList] = useState(false);
-  const [isTikTokVideo, setIsTikTokVideo] = useState(false);
-  const controlsTimeoutRef = useRef<NodeJS.Timeout>();
+  const { currentDrama, setCurrentDrama, setCurrentEpisode, setProgress } = usePlayStore();
 
+  const feedRef = useRef<HTMLDivElement>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [episodeList, setEpisodeList] = useState<Episode[]>([]);
+  const [drama, setDrama] = useState<any>(currentDrama);
+  const [activeIndex, setActiveIndex] = useState(0);
+  const [showEpisodeList, setShowEpisodeList] = useState(false);
+  const [isFavorite, setIsFavorite] = useState(false);
+
+  // 加载剧集数据
   useEffect(() => {
     loadEpisodeData();
-    return () => {
-      if (controlsTimeoutRef.current) {
-        clearTimeout(controlsTimeoutRef.current);
-      }
-    };
-  }, [episodeId]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const loadEpisodeData = async () => {
     setIsLoading(true);
     try {
       const res: any = await api.drama.getPlayUrl(episodeId!);
-      
-      if (!isVip && !res.isFree) {
-        navigate('/subscription');
-        return;
+      const episodes: Episode[] = res.episodes || mockEpisodes;
+      const ep: Episode = res.episode || episodes[0];
+      setEpisodeList(episodes);
+      if (res.drama) {
+        setDrama(res.drama);
+        setCurrentDrama(res.drama);
       }
+      setCurrentEpisode(ep);
 
-      // 判断播放源类型
-      const episode = res.episode;
-      const isTTVideo = episode.play_source === 'tiktok' && episode.tiktok_video_id;
-      setIsTikTokVideo(isTTVideo);
-      
-      setCurrentEpisode(episode);
-      setEpisodeList(res.episodes || mockEpisodes);
+      // 初始定位到当前集
+      const idx = episodes.findIndex((e) => e.id === episodeId);
+      setActiveIndex(idx >= 0 ? idx : 0);
+
+      // 检查收藏（drama 级）
+      if (res.drama?.id) {
+        try {
+          const favRes: any = await api.favorite.check(res.drama.id);
+          setIsFavorite(!!favRes?.is_favorite);
+        } catch {
+          /* ignore */
+        }
+      }
     } catch (error) {
       console.error('Failed to load episode:', error);
-      // 使用模拟数据
-      const mockEpisode = mockEpisodes.find(ep => ep.id === episodeId) || mockEpisodes[0];
-      setCurrentEpisode(mockEpisode);
-      setEpisodeList(mockEpisodes);
+      const mock = mockEpisodes;
+      setEpisodeList(mock);
+      const idx = mock.findIndex((e) => e.id === episodeId);
+      setActiveIndex(idx >= 0 ? idx : 0);
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handlePlayPause = () => {
-    if (!videoRef.current) return;
-    
-    if (isPlaying) {
-      videoRef.current.pause();
-    } else {
-      videoRef.current.play();
+  // 初始滚动到当前集（列表渲染后）
+  useEffect(() => {
+    if (!isLoading && episodeList.length && feedRef.current) {
+      const slide = feedRef.current.children[activeIndex] as HTMLElement;
+      slide?.scrollIntoView({ behavior: 'auto' });
     }
-    setIsPlaying(!isPlaying);
-  };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLoading, episodeList]);
 
-  const handleTimeUpdate = () => {
-    if (!videoRef.current) return;
-    setCurrentTime(videoRef.current.currentTime);
-    setProgress(videoRef.current.currentTime, videoRef.current.duration);
-  };
+  // IntersectionObserver：检测最可见的 slide，自动切换
+  useEffect(() => {
+    const feed = feedRef.current;
+    if (!feed || episodeList.length === 0) return;
 
-  const handleLoadedMetadata = () => {
-    if (!videoRef.current) return;
-    setDuration(videoRef.current.duration);
-  };
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((e) => {
+          if (e.isIntersecting && e.intersectionRatio >= 0.6) {
+            const idx = Number((e.target as HTMLElement).dataset.index);
+            setActiveIndex((prev) => (prev !== idx ? idx : prev));
+          }
+        });
+      },
+      { root: feed, threshold: [0.6] }
+    );
 
-  const handleSeek = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!videoRef.current) return;
-    const time = parseFloat(e.target.value);
-    videoRef.current.currentTime = time;
-    setCurrentTime(time);
-  };
+    const slides = feed.querySelectorAll('.video-slide');
+    slides.forEach((el) => observer.observe(el));
+    return () => observer.disconnect();
+  }, [episodeList]);
 
-  const handleVideoClick = () => {
-    setShowControls(true);
-    
-    if (controlsTimeoutRef.current) {
-      clearTimeout(controlsTimeoutRef.current);
+  // activeIndex 变化时：更新 URL（replace）+ 记录 playStore
+  useEffect(() => {
+    if (!episodeList.length) return;
+    const ep = episodeList[activeIndex];
+    if (!ep) return;
+    setCurrentEpisode(ep);
+    if (ep.id !== episodeId) {
+      navigate(`/play/${ep.id}`, { replace: true });
     }
-    
-    controlsTimeoutRef.current = setTimeout(() => {
-      if (isPlaying) {
-        setShowControls(false);
-      }
-    }, 3000);
-  };
+  }, [activeIndex, episodeList]);
 
-  const handlePrevious = () => {
-    const currentIndex = episodeList.findIndex(ep => ep.id === episodeId);
-    if (currentIndex > 0) {
-      navigate(`/play/${episodeList[currentIndex - 1].id}`);
-    }
-  };
+  const scrollToIndex = useCallback((idx: number) => {
+    const feed = feedRef.current;
+    if (!feed) return;
+    if (idx < 0 || idx >= episodeList.length) return;
+    const target = feed.children[idx] as HTMLElement;
+    target?.scrollIntoView({ behavior: 'smooth' });
+  }, [episodeList.length]);
 
-  const handleNext = () => {
-    const currentIndex = episodeList.findIndex(ep => ep.id === episodeId);
-    if (currentIndex < episodeList.length - 1) {
-      navigate(`/play/${episodeList[currentIndex + 1].id}`);
-    }
-  };
+  const handlePrev = () => scrollToIndex(activeIndex - 1);
+  const handleNext = () => scrollToIndex(activeIndex + 1);
 
-  const handleEpisodeSelect = (episode: Episode) => {
+  const handleEpisodeSelect = (ep: Episode) => {
     setShowEpisodeList(false);
-    navigate(`/play/${episode.id}`);
+    const idx = episodeList.findIndex((e) => e.id === ep.id);
+    if (idx >= 0) scrollToIndex(idx);
   };
 
-  const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = Math.floor(seconds % 60);
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  const toggleFavorite = async () => {
+    const dramaId = drama?.id;
+    if (!dramaId) return;
+    try {
+      if (isFavorite) {
+        await api.favorite.remove(dramaId);
+        setIsFavorite(false);
+      } else {
+        await api.favorite.add(dramaId);
+        setIsFavorite(true);
+      }
+    } catch (e) {
+      console.error('toggle favorite failed', e);
+    }
   };
-
-  const progressPercent = duration > 0 ? (currentTime / duration) * 100 : 0;
 
   if (isLoading) {
     return (
@@ -149,153 +157,279 @@ const Player: React.FC = () => {
 
   return (
     <div className="player-container">
-      {/* 视频播放器 */}
-      <div className="video-wrapper" onClick={() => !isTikTokVideo && handleVideoClick()}>
-        {/* TikTok视频嵌入播放 - VIP专属 */}
-        {isTikTokVideo && currentEpisode?.tiktok_video_id ? (
-          isVip ? (
-            // VIP用户 - 直接播放TikTok视频
-            <div className="tiktok-embed-wrapper">
-              <iframe
-                src={`https://www.tiktok.com/embed/v2/${currentEpisode.tiktok_video_id}?autoplay=1`}
-                className="tiktok-embed-iframe"
-                allowFullScreen
-                allow="autoplay"
-                title="TikTok Video"
-              />
-            </div>
-          ) : (
-            // 非VIP用户 - 显示模糊封面 + 订阅提示
-            <div className="tiktok-locked-wrapper">
-              <div 
-                className="tiktok-blur-thumbnail"
-                style={{ backgroundImage: `url(${currentDrama?.cover})` }}
-              />
-              <div className="lock-overlay" onClick={() => navigate('/subscription')}>
-                <div className="lock-icon">🔒</div>
-                <h3>VIP Content</h3>
-                <p>Subscribe to unlock this episode</p>
-                <button className="subscribe-btn">Subscribe Now</button>
-              </div>
-            </div>
-          )
-        ) : (
-          /* 标准CDN视频播放 */
-          <video
-            ref={videoRef}
-            className="video-player"
-            src={currentEpisode?.play_url || 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'}
-            poster={currentDrama?.cover}
-            onTimeUpdate={handleTimeUpdate}
-            onLoadedMetadata={handleLoadedMetadata}
-            onPlay={() => setIsPlaying(true)}
-            onPause={() => setIsPlaying(false)}
-            onEnded={handleNext}
-            playsInline
-            autoPlay
+      <div className="player-feed" ref={feedRef}>
+        {episodeList.map((episode, index) => (
+          <VideoSlide
+            key={episode.id}
+            episode={episode}
+            drama={drama}
+            isVip={isVip}
+            isActive={index === activeIndex}
+            index={index}
+            isFavorite={isFavorite}
+            onToggleFavorite={toggleFavorite}
+            onPrev={handlePrev}
+            onNext={handleNext}
+            onBack={() => navigate(-1)}
+            onShowList={() => setShowEpisodeList(true)}
+            onSubscribe={() => navigate('/subscription')}
+            onProgress={(t, d) => {
+              setProgress(t, d);
+              // 节流记录：仅在每 10 秒或切换时由父组件处理
+            }}
+            hasPrev={index > 0}
+            hasNext={index < episodeList.length - 1}
           />
-        )}
-        
-        {/* 控制层 - 仅非TikTok视频显示 */}
-        {!isTikTokVideo && showControls && (
-          <div className="controls-overlay">
-            {/* 顶部控制栏 */}
-            <div className="top-controls">
-              <button className="back-btn" onClick={() => navigate(-1)}>
-                ←
-              </button>
-              <div className="title-info">
-                <h3>{currentDrama?.title}</h3>
-                <p>EP {currentEpisode?.episode_number} - {currentEpisode?.title}</p>
-              </div>
-            </div>
-            
-            {/* 中央控制按钮 */}
-            <div className="center-controls">
-              <button className="control-btn" onClick={handlePrevious}>
-                ⏮
-              </button>
-              <button className="play-btn-large" onClick={handlePlayPause}>
-                {isPlaying ? '⏸' : '▶'}
-              </button>
-              <button className="control-btn" onClick={handleNext}>
-                ⏭
-              </button>
-            </div>
-            
-            {/* 底部控制栏 */}
-            <div className="bottom-controls">
-              <span className="time">{formatTime(currentTime)}</span>
-              <div className="progress-bar">
-                <input
-                  type="range"
-                  min="0"
-                  max={duration}
-                  value={currentTime}
-                  onChange={handleSeek}
-                  className="progress-slider"
-                  style={{
-                    background: `linear-gradient(to right, #fe2c55 ${progressPercent}%, rgba(255,255,255,0.3) ${progressPercent}%)`
-                  }}
-                />
-              </div>
-              <span className="time">{formatTime(duration)}</span>
-              <button 
-                className="episode-list-btn"
-                onClick={() => setShowEpisodeList(true)}
-              >
-                📋
-              </button>
-            </div>
-          </div>
-        )}
-        
-        {/* TikTok视频的顶部返回按钮 */}
-        {isTikTokVideo && (
-          <div className="controls-overlay tiktok-overlay">
-            <div className="top-controls">
-              <button className="back-btn" onClick={() => navigate(-1)}>
-                ←
-              </button>
-              <div className="title-info">
-                <h3>{currentDrama?.title}</h3>
-                <p>EP {currentEpisode?.episode_number} - {currentEpisode?.title}</p>
-              </div>
-              <button 
-                className="episode-list-btn"
-                onClick={() => setShowEpisodeList(true)}
-              >
-                📋
-              </button>
-            </div>
-          </div>
-        )}
+        ))}
       </div>
 
       {/* 剧集列表弹窗 */}
       {showEpisodeList && (
-        <div className="episode-list-modal">
-          <div className="modal-header">
-            <h3>Episodes</h3>
-            <button onClick={() => setShowEpisodeList(false)}>✕</button>
+        <div className="episode-list-modal" onClick={() => setShowEpisodeList(false)}>
+          <div className="modal-inner" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>选集 ({episodeList.length}集)</h3>
+              <button onClick={() => setShowEpisodeList(false)}>✕</button>
+            </div>
+            <div className="modal-content">
+              {episodeList.map((episode) => {
+                const idx = episodeList.findIndex((e) => e.id === episode.id);
+                const locked = !isVip && !episode.is_free;
+                return (
+                  <div
+                    key={episode.id}
+                    className={`episode-item ${idx === activeIndex ? 'active' : ''}`}
+                    onClick={() => handleEpisodeSelect(episode)}
+                  >
+                    <div className="episode-num">{episode.episode_number}</div>
+                    <div className="episode-info">
+                      <h4>{episode.title || `第${episode.episode_number}集`}</h4>
+                      <span>{locked ? '🔒 VIP可看' : '免费'}</span>
+                    </div>
+                    {idx === activeIndex && <span className="playing-indicator">▶ 播放中</span>}
+                  </div>
+                );
+              })}
+            </div>
           </div>
-          <div className="modal-content">
-            {episodeList.map((episode) => (
-              <div 
-                key={episode.id}
-                className={`episode-item ${episode.id === episodeId ? 'active' : ''}`}
-                onClick={() => handleEpisodeSelect(episode)}
-              >
-                <div className="episode-num">EP {episode.episode_number}</div>
-                <div className="episode-info">
-                  <h4>{episode.title}</h4>
-                  <span>{formatTime(episode.duration)}</span>
-                </div>
-                {episode.id === episodeId && (
-                  <span className="playing-indicator">▶ Playing</span>
-                )}
-              </div>
-            ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ===================== 单个视频卡片 =====================
+interface VideoSlideProps {
+  episode: Episode;
+  drama: any;
+  isVip: boolean;
+  isActive: boolean;
+  index: number;
+  isFavorite: boolean;
+  hasPrev: boolean;
+  hasNext: boolean;
+  onToggleFavorite: () => void;
+  onPrev: () => void;
+  onNext: () => void;
+  onBack: () => void;
+  onShowList: () => void;
+  onSubscribe: () => void;
+  onProgress: (t: number, d: number) => void;
+}
+
+const VideoSlide: React.FC<VideoSlideProps> = ({
+  episode,
+  drama,
+  isVip,
+  isActive,
+  index,
+  isFavorite,
+  hasPrev,
+  hasNext,
+  onToggleFavorite,
+  onPrev,
+  onNext,
+  onBack,
+  onShowList,
+  onSubscribe,
+  onProgress,
+}) => {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const [showControls, setShowControls] = useState(false);
+  const controlsTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const isTikTokVideo = episode.play_source === 'tiktok' && !!episode.tiktok_video_id;
+  const isLocked = !isVip && !episode.is_free;
+
+  // 激活时播放，否则暂停
+  useEffect(() => {
+    const v = videoRef.current;
+    if (!v || isTikTokVideo || isLocked) return;
+    if (isActive) {
+      v.play().catch(() => {
+        /* 浏览器阻止自动播放，用户可点击播放 */
+      });
+    } else {
+      v.pause();
+    }
+  }, [isActive, isTikTokVideo, isLocked]);
+
+  const handlePlayPause = () => {
+    const v = videoRef.current;
+    if (!v) return;
+    if (v.paused) {
+      v.play().catch(() => {});
+    } else {
+      v.pause();
+    }
+  };
+
+  const handleTimeUpdate = () => {
+    const v = videoRef.current;
+    if (!v) return;
+    setCurrentTime(v.currentTime);
+    onProgress(v.currentTime, v.duration);
+  };
+
+  const handleSeek = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const v = videoRef.current;
+    if (!v) return;
+    const t = parseFloat(e.target.value);
+    v.currentTime = t;
+    setCurrentTime(t);
+  };
+
+  const toggleControls = () => {
+    setShowControls((s) => {
+      const next = !s;
+      if (controlsTimer.current) clearTimeout(controlsTimer.current);
+      if (next) {
+        controlsTimer.current = setTimeout(() => setShowControls(false), 3500);
+      }
+      return next;
+    });
+  };
+
+  const formatTime = (sec: number) => {
+    if (!sec || isNaN(sec)) return '0:00';
+    const m = Math.floor(sec / 60);
+    const s = Math.floor(sec % 60);
+    return `${m}:${s.toString().padStart(2, '0')}`;
+  };
+
+  const progressPercent = duration > 0 ? (currentTime / duration) * 100 : 0;
+
+  return (
+    <div className="video-slide" data-index={index}>
+      <div className="slide-video-area" onClick={isLocked ? undefined : toggleControls}>
+        {/* 锁定状态 */}
+        {isLocked ? (
+          <div className="slide-locked">
+            <div
+              className="slide-blur-bg"
+              style={{ backgroundImage: `url(${drama?.cover})` }}
+            />
+            <div className="lock-overlay" onClick={onSubscribe}>
+              <div className="lock-icon">🔒</div>
+              <h3>VIP 专享内容</h3>
+              <p>开通会员解锁全部剧集</p>
+              <button className="subscribe-btn">立即开通</button>
+            </div>
+          </div>
+        ) : isTikTokVideo ? (
+          /* TikTok 嵌入 */
+          <div className="tiktok-embed-wrapper">
+            <iframe
+              src={`https://www.tiktok.com/embed/v2/${episode.tiktok_video_id}${isActive ? '?autoplay=1' : ''}`}
+              className="tiktok-embed-iframe"
+              allowFullScreen
+              allow="autoplay"
+              title="TikTok Video"
+            />
+          </div>
+        ) : (
+          /* 标准视频 */
+          <video
+            ref={videoRef}
+            className="video-player"
+            src={episode.play_url || 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'}
+            poster={drama?.cover}
+            onTimeUpdate={handleTimeUpdate}
+            onLoadedMetadata={(e) => setDuration(e.currentTarget.duration)}
+            onPlay={() => setIsPlaying(true)}
+            onPause={() => setIsPlaying(false)}
+            onEnded={onNext}
+            playsInline
+            loop={false}
+          />
+        )}
+
+        {/* 中央播放/暂停指示（仅普通视频，控件显示时） */}
+        {!isLocked && !isTikTokVideo && showControls && (
+          <div className="slide-center-btn" onClick={(e) => { e.stopPropagation(); handlePlayPause(); }}>
+            {isPlaying ? '⏸' : '▶'}
+          </div>
+        )}
+      </div>
+
+      {/* 顶部栏 */}
+      <div className="slide-top-bar">
+        <button className="icon-btn" onClick={onBack}>←</button>
+        <div className="slide-top-title">
+          <h3>{drama?.title || '短剧'}</h3>
+          <p>第 {episode.episode_number} 集 {episode.title ? `· ${episode.title}` : ''}</p>
+        </div>
+      </div>
+
+      {/* 右侧操作栏（抖音风格） */}
+      <div className="slide-side-actions">
+        <button className="side-action" onClick={onToggleFavorite} title="收藏">
+          <span className="side-icon">{isFavorite ? '❤️' : '🤍'}</span>
+          <span className="side-label">{isFavorite ? '已收藏' : '收藏'}</span>
+        </button>
+        {hasPrev && (
+          <button className="side-action" onClick={onPrev} title="上一集">
+            <span className="side-icon">⬆️</span>
+            <span className="side-label">上一集</span>
+          </button>
+        )}
+        {hasNext && (
+          <button className="side-action" onClick={onNext} title="下一集">
+            <span className="side-icon">⬇️</span>
+            <span className="side-label">下一集</span>
+          </button>
+        )}
+        <button className="side-action" onClick={onShowList} title="选集">
+          <span className="side-icon">📋</span>
+          <span className="side-label">选集</span>
+        </button>
+      </div>
+
+      {/* 底部信息 + 进度条（仅普通视频） */}
+      {!isLocked && !isTikTokVideo && (
+        <div className="slide-bottom-bar">
+          <div className="slide-bottom-title">
+            <h3>{drama?.title || '短剧'}</h3>
+            <p>第 {episode.episode_number} 集 · {formatTime(duration)}</p>
+          </div>
+          <div className="slide-progress">
+            <span className="time">{formatTime(currentTime)}</span>
+            <input
+              type="range"
+              min="0"
+              max={duration || 0}
+              value={currentTime}
+              onChange={handleSeek}
+              className="progress-slider"
+              style={{
+                background: `linear-gradient(to right, #fe2c55 ${progressPercent}%, rgba(255,255,255,0.3) ${progressPercent}%)`,
+              }}
+              onClick={(e) => e.stopPropagation()}
+            />
+            <span className="time">{formatTime(duration)}</span>
           </div>
         </div>
       )}
@@ -305,17 +439,15 @@ const Player: React.FC = () => {
 
 // 模拟数据 - 支持CDN和TikTok两种播放源
 const mockEpisodes: Episode[] = [
-  // TikTok视频
   {
     id: 'ep-1',
     episode_number: 1,
     title: 'Episode 1 - The Beginning',
     duration: 180,
-    play_url: '',
-    tiktok_video_id: '7376549368795877409', // 示例TikTok视频ID
-    play_source: 'tiktok',
+    play_url: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8',
+    play_source: 'cdn',
+    is_free: true,
   },
-  // CDN视频
   {
     id: 'ep-2',
     episode_number: 2,
@@ -323,8 +455,8 @@ const mockEpisodes: Episode[] = [
     duration: 150,
     play_url: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8',
     play_source: 'cdn',
+    is_free: true,
   },
-  // 默认CDN视频
   ...Array.from({ length: 18 }, (_, i) => ({
     id: `ep-${i + 3}`,
     episode_number: i + 3,
@@ -332,6 +464,7 @@ const mockEpisodes: Episode[] = [
     duration: 120 + Math.floor(Math.random() * 60),
     play_url: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8',
     play_source: 'cdn' as const,
+    is_free: i < 1,
   })),
 ];
 
